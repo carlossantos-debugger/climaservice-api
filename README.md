@@ -45,6 +45,11 @@ Atualmente, a API possui gerenciamento de clientes com:
 * Validação dos dados de entrada
 * DTOs para entrada e saída de dados
 * Persistência utilizando PostgreSQL
+* Cadastro e gerenciamento de equipamentos
+* Associação de equipamentos aos clientes
+* Consulta de equipamentos por cliente
+* Ativação e inativação de equipamentos
+* Validação dos dados de equipamentos
 
 ##  Cliente
 
@@ -295,9 +300,6 @@ http://localhost:8080
 
 Próximas etapas planejadas:
 
-* [ ] Tratamento global de exceções
-* [ ] Cadastro e gerenciamento de equipamentos
-* [ ] Relacionamento entre clientes e equipamentos
 * [ ] Ordens de serviço
 * [ ] Histórico de ordens de serviço
 * [ ] Técnicos e usuários
