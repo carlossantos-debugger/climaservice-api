@@ -339,5 +339,3 @@ Além de criar uma aplicação funcional para gestão de serviços de climatiza�
 ## Status
 
 🚧 **Projeto em desenvolvimento**
-
-Primeiro módulo implementado: **Gerenciamento de Clientes**.
