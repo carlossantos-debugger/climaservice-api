@@ -30,10 +30,7 @@ public class OrdemServicoHistorico {
     public OrdemServicoHistorico() {
     }
 
-    public OrdemServicoHistorico(
-            OrdemServico ordemServico,
-            StatusOrdemServico statusAnterior,
-            StatusOrdemServico statusNovo) {
+    public OrdemServicoHistorico(OrdemServico ordemServico, StatusOrdemServico statusAnterior, StatusOrdemServico statusNovo) {
 
         this.ordemServico = ordemServico;
         this.statusAnterior = statusAnterior;

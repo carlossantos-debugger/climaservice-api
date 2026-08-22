@@ -20,15 +20,11 @@ public class EquipamentoController {
     }
 
     @PostMapping("/equipamentos")
-    public ResponseEntity<EquipamentoResponseDTO> salvar(
-            @Valid @RequestBody EquipamentoRequestDTO dto) {
+    public ResponseEntity<EquipamentoResponseDTO> salvar(@Valid @RequestBody EquipamentoRequestDTO dto) {
 
-        EquipamentoResponseDTO equipamento =
-                equipamentoService.salvar(dto);
+        EquipamentoResponseDTO equipamento = equipamentoService.salvar(dto);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(equipamento);
+        return ResponseEntity.status(HttpStatus.CREATED).body(equipamento);
     }
 
     @GetMapping("/equipamentos")
@@ -37,52 +33,37 @@ public class EquipamentoController {
     }
 
     @GetMapping("/equipamentos/{id}")
-    public ResponseEntity<EquipamentoResponseDTO> buscarPorId(
-            @PathVariable Long id) {
+    public ResponseEntity<EquipamentoResponseDTO> buscarPorId(@PathVariable Long id) {
 
-        return equipamentoService.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return equipamentoService.buscarPorId(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/equipamentos/{id}")
-    public ResponseEntity<EquipamentoResponseDTO> atualizar(
-            @PathVariable Long id,
-            @Valid @RequestBody EquipamentoRequestDTO dto) {
+    public ResponseEntity<EquipamentoResponseDTO> atualizar(@PathVariable Long id, @Valid @RequestBody EquipamentoRequestDTO dto) {
 
-        return equipamentoService.atualizar(id, dto)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return equipamentoService.atualizar(id, dto).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
     @PatchMapping("/equipamentos/{id}/ativar")
-    public ResponseEntity<EquipamentoResponseDTO> ativar(
-            @PathVariable Long id) {
+    public ResponseEntity<EquipamentoResponseDTO> ativar(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                equipamentoService.ativar(id)
-        );
+        return ResponseEntity.ok(equipamentoService.ativar(id));
     }
 
     @PatchMapping("/equipamentos/{id}/inativar")
-    public ResponseEntity<EquipamentoResponseDTO> inativar(
-            @PathVariable Long id) {
+    public ResponseEntity<EquipamentoResponseDTO> inativar(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                equipamentoService.inativar(id)
-        );
+        return ResponseEntity.ok(equipamentoService.inativar(id));
     }
 
     @GetMapping("/clientes/{clienteId}/equipamentos/ativos")
-    public List<EquipamentoResponseDTO> listarAtivosPorCliente(
-            @PathVariable Long clienteId) {
+    public List<EquipamentoResponseDTO> listarAtivosPorCliente(@PathVariable Long clienteId) {
 
         return equipamentoService.listarAtivosPorCliente(clienteId);
     }
 
     @GetMapping("/clientes/{clienteId}/equipamentos")
-    public List<EquipamentoResponseDTO> listarPorCliente(
-            @PathVariable Long clienteId) {
+    public List<EquipamentoResponseDTO> listarPorCliente(@PathVariable Long clienteId) {
 
         return equipamentoService.listarPorCliente(clienteId);
     }
