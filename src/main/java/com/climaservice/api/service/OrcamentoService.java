@@ -1,9 +1,6 @@
 package com.climaservice.api.service;
 
-import com.climaservice.api.dto.OrcamentoItemRequestDTO;
-import com.climaservice.api.dto.OrcamentoItemResponseDTO;
-import com.climaservice.api.dto.OrcamentoRequestDTO;
-import com.climaservice.api.dto.OrcamentoResponseDTO;
+import com.climaservice.api.dto.*;
 import com.climaservice.api.entity.*;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
@@ -15,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -148,6 +146,60 @@ public class OrcamentoService {
         }
 
         return servico.getValorPadrao();
+    }
+
+    @Transactional
+    public OrcamentoResponseDTO atualizarStatus(Long id, AtualizarStatusOrcamentoRequestDTO dto) {
+
+        Orcamento orcamento = buscarOrcamentoPorId(id);
+
+        StatusOrcamento statusAnterior = orcamento.getStatus();
+
+        StatusOrcamento novoStatus = dto.status();
+
+        validarTransicaoStatus(statusAnterior, novoStatus);
+
+        if (novoStatus == StatusOrcamento.ENVIADO) {
+            validarOrcamentoPossuiItens(orcamento);
+
+            orcamento.setDataEnvio(LocalDateTime.now());
+        }
+
+        if (novoStatus == StatusOrcamento.APROVADO || novoStatus == StatusOrcamento.REJEITADO) {
+
+            orcamento.setDataResposta(LocalDateTime.now());
+        }
+
+        orcamento.setStatus(novoStatus);
+
+        Orcamento orcamentoAtualizado = orcamentoRepository.save(orcamento);
+
+        return converterParaResponse(orcamentoAtualizado);
+    }
+
+    private void validarTransicaoStatus(StatusOrcamento atual, StatusOrcamento novo) {
+
+        boolean transicaoValida = switch (atual) {
+
+            case RASCUNHO -> novo == StatusOrcamento.ENVIADO || novo == StatusOrcamento.CANCELADO;
+
+            case ENVIADO -> novo == StatusOrcamento.APROVADO || novo == StatusOrcamento.REJEITADO;
+
+            case APROVADO, REJEITADO, CANCELADO -> false;
+        };
+
+        if (!transicaoValida) {
+            throw new BusinessRuleException("Transição de status inválida: " + atual + " -> " + novo);
+        }
+    }
+
+    private void validarOrcamentoPossuiItens(Orcamento orcamento) {
+
+        List<OrcamentoItem> itens = orcamentoItemRepository.findByOrcamentoIdOrderByIdAsc(orcamento.getId());
+
+        if (itens.isEmpty()) {
+            throw new BusinessRuleException("Não é possível enviar um orçamento sem itens");
+        }
     }
 
     private OrcamentoResponseDTO converterParaResponse(Orcamento orcamento) {

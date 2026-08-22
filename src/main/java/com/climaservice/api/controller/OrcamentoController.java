@@ -1,9 +1,6 @@
 package com.climaservice.api.controller;
 
-import com.climaservice.api.dto.OrcamentoItemRequestDTO;
-import com.climaservice.api.dto.OrcamentoItemResponseDTO;
-import com.climaservice.api.dto.OrcamentoRequestDTO;
-import com.climaservice.api.dto.OrcamentoResponseDTO;
+import com.climaservice.api.dto.*;
 import com.climaservice.api.service.OrcamentoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -22,55 +19,42 @@ public class OrcamentoController {
     }
 
     @PostMapping("/ordens-servico/{ordemServicoId}/orcamentos")
-    public ResponseEntity<OrcamentoResponseDTO> criar(
-            @PathVariable Long ordemServicoId,
-            @Valid @RequestBody OrcamentoRequestDTO dto) {
+    public ResponseEntity<OrcamentoResponseDTO> criar(@PathVariable Long ordemServicoId, @Valid @RequestBody OrcamentoRequestDTO dto) {
 
-        OrcamentoResponseDTO orcamento =
-                orcamentoService.criar(ordemServicoId, dto);
+        OrcamentoResponseDTO orcamento = orcamentoService.criar(ordemServicoId, dto);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(orcamento);
+        return ResponseEntity.status(HttpStatus.CREATED).body(orcamento);
     }
 
     @GetMapping("/ordens-servico/{ordemServicoId}/orcamentos")
-    public List<OrcamentoResponseDTO> listarPorOrdemServico(
-            @PathVariable Long ordemServicoId) {
+    public List<OrcamentoResponseDTO> listarPorOrdemServico(@PathVariable Long ordemServicoId) {
 
-        return orcamentoService
-                .listarPorOrdemServico(ordemServicoId);
+        return orcamentoService.listarPorOrdemServico(ordemServicoId);
     }
 
     @GetMapping("/orcamentos/{id}")
-    public ResponseEntity<OrcamentoResponseDTO> buscarPorId(
-            @PathVariable Long id) {
+    public ResponseEntity<OrcamentoResponseDTO> buscarPorId(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                orcamentoService.buscarPorId(id)
-        );
+        return ResponseEntity.ok(orcamentoService.buscarPorId(id));
     }
 
     @PostMapping("/orcamentos/{orcamentoId}/itens")
-    public ResponseEntity<OrcamentoItemResponseDTO> adicionarItem(
-            @PathVariable Long orcamentoId,
-            @Valid @RequestBody OrcamentoItemRequestDTO dto) {
+    public ResponseEntity<OrcamentoItemResponseDTO> adicionarItem(@PathVariable Long orcamentoId, @Valid @RequestBody OrcamentoItemRequestDTO dto) {
 
-        OrcamentoItemResponseDTO item =
-                orcamentoService.adicionarItem(
-                        orcamentoId,
-                        dto
-                );
+        OrcamentoItemResponseDTO item = orcamentoService.adicionarItem(orcamentoId, dto);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(item);
+        return ResponseEntity.status(HttpStatus.CREATED).body(item);
     }
 
     @GetMapping("/orcamentos/{orcamentoId}/itens")
-    public List<OrcamentoItemResponseDTO> listarItens(
-            @PathVariable Long orcamentoId) {
+    public List<OrcamentoItemResponseDTO> listarItens(@PathVariable Long orcamentoId) {
 
         return orcamentoService.listarItens(orcamentoId);
+    }
+
+    @PatchMapping("/orcamentos/{id}/status")
+    public ResponseEntity<OrcamentoResponseDTO> atualizarStatus(@PathVariable Long id, @Valid @RequestBody AtualizarStatusOrcamentoRequestDTO dto) {
+
+        return ResponseEntity.ok(orcamentoService.atualizarStatus(id, dto));
     }
 }
