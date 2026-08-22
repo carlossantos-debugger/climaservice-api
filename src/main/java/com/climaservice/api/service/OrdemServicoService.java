@@ -1,11 +1,10 @@
 package com.climaservice.api.service;
 
+import com.climaservice.api.dto.AtualizarDiagnosticoRequestDTO;
+import com.climaservice.api.dto.AtualizarStatusOrdemServicoRequestDTO;
 import com.climaservice.api.dto.OrdemServicoRequestDTO;
 import com.climaservice.api.dto.OrdemServicoResponseDTO;
-import com.climaservice.api.entity.Cliente;
-import com.climaservice.api.entity.Equipamento;
-import com.climaservice.api.entity.OrdemServico;
-import com.climaservice.api.entity.StatusEquipamento;
+import com.climaservice.api.entity.*;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.ClienteRepository;
@@ -14,6 +13,7 @@ import com.climaservice.api.repository.OrdemServicoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -132,6 +132,98 @@ public class OrdemServicoService {
                 .stream()
                 .map(this::converterParaResponse)
                 .toList();
+    }
+
+    @Transactional
+    public OrdemServicoResponseDTO atualizarDiagnostico(
+            Long id,
+            AtualizarDiagnosticoRequestDTO dto) {
+
+        OrdemServico ordemServico = ordemServicoRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Ordem de serviço com ID " + id + " não encontrada"
+                        )
+                );
+
+        if (ordemServico.getStatus() == StatusOrdemServico.CANCELADA) {
+            throw new BusinessRuleException(
+                    "Não é possível alterar o diagnóstico de uma ordem de serviço cancelada"
+            );
+        }
+
+        if (ordemServico.getStatus() == StatusOrdemServico.CONCLUIDA) {
+            throw new BusinessRuleException(
+                    "Não é possível alterar o diagnóstico de uma ordem de serviço concluída"
+            );
+        }
+
+        ordemServico.setDiagnostico(dto.diagnostico());
+
+        OrdemServico ordemServicoAtualizada =
+                ordemServicoRepository.save(ordemServico);
+
+        return converterParaResponse(ordemServicoAtualizada);
+    }
+
+    private void validarTransicaoStatus(
+            StatusOrdemServico atual,
+            StatusOrdemServico novo) {
+
+        boolean transicaoValida = switch (atual) {
+
+            case ABERTA -> novo == StatusOrdemServico.EM_ANDAMENTO
+                    || novo == StatusOrdemServico.CANCELADA;
+
+            case EM_ANDAMENTO -> novo == StatusOrdemServico.AGUARDANDO_CLIENTE
+                    || novo == StatusOrdemServico.CONCLUIDA
+                    || novo == StatusOrdemServico.CANCELADA;
+
+            case AGUARDANDO_CLIENTE -> novo == StatusOrdemServico.EM_ANDAMENTO
+                    || novo == StatusOrdemServico.CANCELADA;
+
+            case CONCLUIDA, CANCELADA -> false;
+        };
+
+        if (!transicaoValida) {
+            throw new BusinessRuleException(
+                    "Transição de status inválida: "
+                            + atual
+                            + " -> "
+                            + novo
+            );
+        }
+    }
+
+    @Transactional
+    public OrdemServicoResponseDTO atualizarStatus(
+            Long id,
+            AtualizarStatusOrdemServicoRequestDTO dto) {
+
+        OrdemServico ordemServico = ordemServicoRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Ordem de serviço com ID " + id + " não encontrada"
+                        )
+                );
+
+        StatusOrdemServico novoStatus = dto.status();
+
+        validarTransicaoStatus(
+                ordemServico.getStatus(),
+                novoStatus
+        );
+
+        ordemServico.setStatus(novoStatus);
+
+        if (novoStatus == StatusOrdemServico.CONCLUIDA) {
+            ordemServico.setDataConclusao(LocalDateTime.now());
+        }
+
+        OrdemServico ordemServicoAtualizada =
+                ordemServicoRepository.save(ordemServico);
+
+        return converterParaResponse(ordemServicoAtualizada);
     }
 
     private OrdemServicoResponseDTO converterParaResponse(

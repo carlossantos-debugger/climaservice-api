@@ -1,5 +1,7 @@
 package com.climaservice.api.controller;
 
+import com.climaservice.api.dto.AtualizarDiagnosticoRequestDTO;
+import com.climaservice.api.dto.AtualizarStatusOrdemServicoRequestDTO;
 import com.climaservice.api.dto.OrdemServicoRequestDTO;
 import com.climaservice.api.dto.OrdemServicoResponseDTO;
 import com.climaservice.api.service.OrdemServicoService;
@@ -58,4 +60,26 @@ public class OrdemServicoController {
 
         return ordemServicoService.listarPorEquipamento(equipamentoId);
     }
+
+    @PatchMapping("/ordens-servico/{id}/diagnostico")
+    public ResponseEntity<OrdemServicoResponseDTO> atualizarDiagnostico(
+            @PathVariable Long id,
+            @Valid @RequestBody AtualizarDiagnosticoRequestDTO dto) {
+
+        return ResponseEntity.ok(
+                ordemServicoService.atualizarDiagnostico(id, dto)
+        );
+    }
+
+    @PatchMapping("/ordens-servico/{id}/status")
+    public ResponseEntity<OrdemServicoResponseDTO> atualizarStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody AtualizarStatusOrdemServicoRequestDTO dto) {
+
+        return ResponseEntity.ok(
+                ordemServicoService.atualizarStatus(id, dto)
+        );
+    }
+
+    
 }
