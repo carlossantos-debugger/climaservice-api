@@ -19,15 +19,11 @@ public class OrdemServicoController {
     }
 
     @PostMapping("/ordens-servico")
-    public ResponseEntity<OrdemServicoResponseDTO> salvar(
-            @Valid @RequestBody OrdemServicoRequestDTO dto) {
+    public ResponseEntity<OrdemServicoResponseDTO> salvar(@Valid @RequestBody OrdemServicoRequestDTO dto) {
 
-        OrdemServicoResponseDTO ordemServico =
-                ordemServicoService.salvar(dto);
+        OrdemServicoResponseDTO ordemServico = ordemServicoService.salvar(dto);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(ordemServico);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ordemServico);
     }
 
     @GetMapping("/ordens-servico")
@@ -36,51 +32,37 @@ public class OrdemServicoController {
     }
 
     @GetMapping("/ordens-servico/{id}")
-    public ResponseEntity<OrdemServicoResponseDTO> buscarPorId(
-            @PathVariable Long id) {
+    public ResponseEntity<OrdemServicoResponseDTO> buscarPorId(@PathVariable Long id) {
 
-        return ordemServicoService.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ordemServicoService.buscarPorId(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/clientes/{clienteId}/ordens-servico")
-    public List<OrdemServicoResponseDTO> listarPorCliente(
-            @PathVariable Long clienteId) {
+    public List<OrdemServicoResponseDTO> listarPorCliente(@PathVariable Long clienteId) {
 
         return ordemServicoService.listarPorCliente(clienteId);
     }
 
     @GetMapping("/equipamentos/{equipamentoId}/ordens-servico")
-    public List<OrdemServicoResponseDTO> listarPorEquipamento(
-            @PathVariable Long equipamentoId) {
+    public List<OrdemServicoResponseDTO> listarPorEquipamento(@PathVariable Long equipamentoId) {
 
         return ordemServicoService.listarPorEquipamento(equipamentoId);
     }
 
     @PatchMapping("/ordens-servico/{id}/diagnostico")
-    public ResponseEntity<OrdemServicoResponseDTO> atualizarDiagnostico(
-            @PathVariable Long id,
-            @Valid @RequestBody AtualizarDiagnosticoRequestDTO dto) {
+    public ResponseEntity<OrdemServicoResponseDTO> atualizarDiagnostico(@PathVariable Long id, @Valid @RequestBody AtualizarDiagnosticoRequestDTO dto) {
 
-        return ResponseEntity.ok(
-                ordemServicoService.atualizarDiagnostico(id, dto)
-        );
+        return ResponseEntity.ok(ordemServicoService.atualizarDiagnostico(id, dto));
     }
 
     @PatchMapping("/ordens-servico/{id}/status")
-    public ResponseEntity<OrdemServicoResponseDTO> atualizarStatus(
-            @PathVariable Long id,
-            @Valid @RequestBody AtualizarStatusOrdemServicoRequestDTO dto) {
+    public ResponseEntity<OrdemServicoResponseDTO> atualizarStatus(@PathVariable Long id, @Valid @RequestBody AtualizarStatusOrdemServicoRequestDTO dto) {
 
-        return ResponseEntity.ok(
-                ordemServicoService.atualizarStatus(id, dto)
-        );
+        return ResponseEntity.ok(ordemServicoService.atualizarStatus(id, dto));
     }
 
     @GetMapping("/ordens-servico/{id}/historico")
-    public List<OrdemServicoHistoricoResponseDTO> listarHistorico(
-            @PathVariable Long id) {
+    public List<OrdemServicoHistoricoResponseDTO> listarHistorico(@PathVariable Long id) {
 
         return ordemServicoService.listarHistorico(id);
     }

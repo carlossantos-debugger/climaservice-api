@@ -20,12 +20,7 @@ public class ClienteService {
 
     public ClienteResponseDTO salvar(ClienteRequestDTO dto) {
 
-        Cliente cliente = new Cliente(
-                dto.nome(),
-                dto.cpfCnpj(),
-                dto.telefone(),
-                dto.email()
-        );
+        Cliente cliente = new Cliente(dto.nome(), dto.cpfCnpj(), dto.telefone(), dto.email());
 
         Cliente clienteSalvo = clienteRepository.save(cliente);
 
@@ -33,32 +28,26 @@ public class ClienteService {
     }
 
     public List<ClienteResponseDTO> listarTodos() {
-        return clienteRepository.findAll()
-                .stream()
-                .map(this::converterParaResponse)
-                .toList();
+        return clienteRepository.findAll().stream().map(this::converterParaResponse).toList();
     }
 
     public Optional<ClienteResponseDTO> buscarPorId(Long id) {
-        return clienteRepository.findById(id)
-                .map(this::converterParaResponse);
+        return clienteRepository.findById(id).map(this::converterParaResponse);
     }
 
     public Optional<ClienteResponseDTO> atualizar(Long id, ClienteRequestDTO dto) {
 
-        return clienteRepository.findById(id)
-                .map(cliente -> {
+        return clienteRepository.findById(id).map(cliente -> {
 
-                    cliente.setNome(dto.nome());
-                    cliente.setCpfCnpj(dto.cpfCnpj());
-                    cliente.setTelefone(dto.telefone());
-                    cliente.setEmail(dto.email());
+            cliente.setNome(dto.nome());
+            cliente.setCpfCnpj(dto.cpfCnpj());
+            cliente.setTelefone(dto.telefone());
+            cliente.setEmail(dto.email());
 
-                    Cliente clienteAtualizado =
-                            clienteRepository.save(cliente);
+            Cliente clienteAtualizado = clienteRepository.save(cliente);
 
-                    return converterParaResponse(clienteAtualizado);
-                });
+            return converterParaResponse(clienteAtualizado);
+        });
     }
 
     public void excluir(Long id) {
@@ -67,12 +56,6 @@ public class ClienteService {
 
     private ClienteResponseDTO converterParaResponse(Cliente cliente) {
 
-        return new ClienteResponseDTO(
-                cliente.getId(),
-                cliente.getNome(),
-                cliente.getCpfCnpj(),
-                cliente.getTelefone(),
-                cliente.getEmail()
-        );
+        return new ClienteResponseDTO(cliente.getId(), cliente.getNome(), cliente.getCpfCnpj(), cliente.getTelefone(), cliente.getEmail());
     }
 }

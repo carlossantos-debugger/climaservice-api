@@ -21,12 +21,7 @@ public class Orcamento {
     @Column(nullable = false, length = 20)
     private StatusOrcamento status;
 
-    @Column(
-            name = "valor_total",
-            nullable = false,
-            precision = 12,
-            scale = 2
-    )
+    @Column(name = "valor_total", nullable = false, precision = 12, scale = 2)
     private BigDecimal valorTotal;
 
     @Column(name = "data_criacao", nullable = false)
@@ -44,9 +39,7 @@ public class Orcamento {
     public Orcamento() {
     }
 
-    public Orcamento(
-            OrdemServico ordemServico,
-            String observacao) {
+    public Orcamento(OrdemServico ordemServico, String observacao) {
 
         this.ordemServico = ordemServico;
         this.observacao = observacao;

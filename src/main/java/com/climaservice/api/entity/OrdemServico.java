@@ -39,10 +39,7 @@ public class OrdemServico {
     public OrdemServico() {
     }
 
-    public OrdemServico(
-            Cliente cliente,
-            Equipamento equipamento,
-            String descricaoProblema) {
+    public OrdemServico(Cliente cliente, Equipamento equipamento, String descricaoProblema) {
 
         this.cliente = cliente;
         this.equipamento = equipamento;

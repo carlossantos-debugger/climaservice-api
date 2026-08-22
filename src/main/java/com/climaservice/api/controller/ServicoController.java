@@ -21,15 +21,11 @@ public class ServicoController {
     }
 
     @PostMapping
-    public ResponseEntity<ServicoResponseDTO> salvar(
-            @Valid @RequestBody ServicoRequestDTO dto) {
+    public ResponseEntity<ServicoResponseDTO> salvar(@Valid @RequestBody ServicoRequestDTO dto) {
 
-        ServicoResponseDTO servico =
-                servicoService.salvar(dto);
+        ServicoResponseDTO servico = servicoService.salvar(dto);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(servico);
+        return ResponseEntity.status(HttpStatus.CREATED).body(servico);
     }
 
     @GetMapping
@@ -43,39 +39,26 @@ public class ServicoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ServicoResponseDTO> buscarPorId(
-            @PathVariable Long id) {
+    public ResponseEntity<ServicoResponseDTO> buscarPorId(@PathVariable Long id) {
 
-        return servicoService.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return servicoService.buscarPorId(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ServicoResponseDTO> atualizar(
-            @PathVariable Long id,
-            @Valid @RequestBody ServicoRequestDTO dto) {
+    public ResponseEntity<ServicoResponseDTO> atualizar(@PathVariable Long id, @Valid @RequestBody ServicoRequestDTO dto) {
 
-        return ResponseEntity.ok(
-                servicoService.atualizar(id, dto)
-        );
+        return ResponseEntity.ok(servicoService.atualizar(id, dto));
     }
 
     @PatchMapping("/{id}/inativar")
-    public ResponseEntity<ServicoResponseDTO> inativar(
-            @PathVariable Long id) {
+    public ResponseEntity<ServicoResponseDTO> inativar(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                servicoService.inativar(id)
-        );
+        return ResponseEntity.ok(servicoService.inativar(id));
     }
 
     @PatchMapping("/{id}/ativar")
-    public ResponseEntity<ServicoResponseDTO> ativar(
-            @PathVariable Long id) {
+    public ResponseEntity<ServicoResponseDTO> ativar(@PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                servicoService.ativar(id)
-        );
+        return ResponseEntity.ok(servicoService.ativar(id));
     }
 }
