@@ -24,6 +24,10 @@ public class OrcamentoItem {
     @JoinColumn(name = "servico_id")
     private Servico servico;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "produto_id")
+    private Produto produto;
+
     @Column(nullable = false, length = 200)
     private String descricao;
 
@@ -51,6 +55,25 @@ public class OrcamentoItem {
         recalcularSubtotal();
     }
 
+    public OrcamentoItem(
+            Orcamento orcamento,
+            TipoItemOrcamento tipo,
+            Produto produto,
+            String descricao,
+            Integer quantidade,
+            BigDecimal valorUnitario) {
+
+        this.orcamento = orcamento;
+        this.tipo = tipo;
+        this.servico = null;
+        this.produto = produto;
+        this.descricao = descricao;
+        this.quantidade = quantidade;
+        this.valorUnitario = valorUnitario;
+
+        recalcularSubtotal();
+    }
+
     public Long getId() {
         return id;
     }
@@ -65,6 +88,10 @@ public class OrcamentoItem {
 
     public Servico getServico() {
         return servico;
+    }
+
+    public Produto getProduto() {
+        return produto;
     }
 
     public String getDescricao() {
