@@ -202,6 +202,59 @@ public class OrcamentoService {
         }
     }
 
+    @Transactional
+    public OrcamentoItemResponseDTO atualizarItem(Long orcamentoId, Long itemId, AtualizarOrcamentoItemRequestDTO dto) {
+
+        Orcamento orcamento = buscarOrcamentoPorId(orcamentoId);
+
+        validarOrcamentoRascunho(orcamento);
+
+        OrcamentoItem item = buscarItemPorId(itemId);
+
+        validarItemPertenceAoOrcamento(item, orcamento);
+
+        BigDecimal valorUnitario = dto.valorUnitario() != null ? dto.valorUnitario() : item.getValorUnitario();
+
+        item.atualizar(dto.quantidade(), valorUnitario);
+
+        OrcamentoItem itemAtualizado = orcamentoItemRepository.save(item);
+
+        recalcularValorTotal(orcamento);
+
+        return converterItemParaResponse(itemAtualizado);
+    }
+
+    private OrcamentoItem buscarItemPorId(Long itemId) {
+
+        return orcamentoItemRepository.findById(itemId).orElseThrow(() -> new ResourceNotFoundException("Item de orçamento com ID " + itemId + " não encontrado"));
+    }
+
+    private void validarItemPertenceAoOrcamento(OrcamentoItem item, Orcamento orcamento) {
+
+        if (!item.getOrcamento().getId().equals(orcamento.getId())) {
+
+            throw new BusinessRuleException("O item informado não pertence ao orçamento");
+        }
+    }
+
+    @Transactional
+    public void removerItem(Long orcamentoId, Long itemId) {
+
+        Orcamento orcamento = buscarOrcamentoPorId(orcamentoId);
+
+        validarOrcamentoRascunho(orcamento);
+
+        OrcamentoItem item = buscarItemPorId(itemId);
+
+        validarItemPertenceAoOrcamento(item, orcamento);
+
+        orcamentoItemRepository.delete(item);
+
+        orcamentoItemRepository.flush();
+
+        recalcularValorTotal(orcamento);
+    }
+
     private OrcamentoResponseDTO converterParaResponse(Orcamento orcamento) {
 
         return new OrcamentoResponseDTO(orcamento.getId(), orcamento.getOrdemServico().getId(), orcamento.getStatus(), orcamento.getValorTotal(), orcamento.getDataCriacao(), orcamento.getDataEnvio(), orcamento.getDataResposta(), orcamento.getObservacao());

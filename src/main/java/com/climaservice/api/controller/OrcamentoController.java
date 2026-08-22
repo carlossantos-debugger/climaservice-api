@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.climaservice.api.dto.AtualizarOrcamentoItemRequestDTO;
 
 import java.util.List;
 
@@ -56,5 +57,19 @@ public class OrcamentoController {
     public ResponseEntity<OrcamentoResponseDTO> atualizarStatus(@PathVariable Long id, @Valid @RequestBody AtualizarStatusOrcamentoRequestDTO dto) {
 
         return ResponseEntity.ok(orcamentoService.atualizarStatus(id, dto));
+    }
+
+    @PutMapping("/orcamentos/{orcamentoId}/itens/{itemId}")
+    public ResponseEntity<OrcamentoItemResponseDTO> atualizarItem(@PathVariable Long orcamentoId, @PathVariable Long itemId, @Valid @RequestBody AtualizarOrcamentoItemRequestDTO dto) {
+
+        return ResponseEntity.ok(orcamentoService.atualizarItem(orcamentoId, itemId, dto));
+    }
+
+    @DeleteMapping("/orcamentos/{orcamentoId}/itens/{itemId}")
+    public ResponseEntity<Void> removerItem(@PathVariable Long orcamentoId, @PathVariable Long itemId) {
+
+        orcamentoService.removerItem(orcamentoId, itemId);
+
+        return ResponseEntity.noContent().build();
     }
 }
