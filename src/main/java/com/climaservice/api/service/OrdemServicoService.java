@@ -1,14 +1,12 @@
 package com.climaservice.api.service;
 
-import com.climaservice.api.dto.AtualizarDiagnosticoRequestDTO;
-import com.climaservice.api.dto.AtualizarStatusOrdemServicoRequestDTO;
-import com.climaservice.api.dto.OrdemServicoRequestDTO;
-import com.climaservice.api.dto.OrdemServicoResponseDTO;
+import com.climaservice.api.dto.*;
 import com.climaservice.api.entity.*;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.ClienteRepository;
 import com.climaservice.api.repository.EquipamentoRepository;
+import com.climaservice.api.repository.OrdemServicoHistoricoRepository;
 import com.climaservice.api.repository.OrdemServicoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,15 +21,18 @@ public class OrdemServicoService {
     private final OrdemServicoRepository ordemServicoRepository;
     private final ClienteRepository clienteRepository;
     private final EquipamentoRepository equipamentoRepository;
+    private final OrdemServicoHistoricoRepository historicoRepository;
 
     public OrdemServicoService(
             OrdemServicoRepository ordemServicoRepository,
             ClienteRepository clienteRepository,
-            EquipamentoRepository equipamentoRepository) {
+            EquipamentoRepository equipamentoRepository,
+            OrdemServicoHistoricoRepository historicoRepository) {
 
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
         this.equipamentoRepository = equipamentoRepository;
+        this.historicoRepository = historicoRepository;
     }
 
     @Transactional
@@ -68,6 +69,15 @@ public class OrdemServicoService {
 
         OrdemServico ordemServicoSalva =
                 ordemServicoRepository.save(ordemServico);
+
+        OrdemServicoHistorico historico =
+                new OrdemServicoHistorico(
+                        ordemServicoSalva,
+                        null,
+                        StatusOrdemServico.ABERTA
+                );
+
+        historicoRepository.save(historico);
 
         return converterParaResponse(ordemServicoSalva);
     }
@@ -209,8 +219,11 @@ public class OrdemServicoService {
 
         StatusOrdemServico novoStatus = dto.status();
 
+        StatusOrdemServico statusAnterior =
+                ordemServico.getStatus();
+
         validarTransicaoStatus(
-                ordemServico.getStatus(),
+                statusAnterior,
                 novoStatus
         );
 
@@ -223,7 +236,46 @@ public class OrdemServicoService {
         OrdemServico ordemServicoAtualizada =
                 ordemServicoRepository.save(ordemServico);
 
+        OrdemServicoHistorico historico =
+                new OrdemServicoHistorico(
+                        ordemServicoAtualizada,
+                        statusAnterior,
+                        novoStatus
+                );
+
+        historicoRepository.save(historico);
+
         return converterParaResponse(ordemServicoAtualizada);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrdemServicoHistoricoResponseDTO> listarHistorico(
+            Long ordemServicoId) {
+
+        if (!ordemServicoRepository.existsById(ordemServicoId)) {
+            throw new ResourceNotFoundException(
+                    "Ordem de serviço com ID "
+                            + ordemServicoId
+                            + " não encontrada"
+            );
+        }
+
+        return historicoRepository
+                .findByOrdemServicoIdOrderByDataAlteracaoAsc(ordemServicoId)
+                .stream()
+                .map(this::converterHistoricoParaResponse)
+                .toList();
+    }
+
+    private OrdemServicoHistoricoResponseDTO converterHistoricoParaResponse(
+            OrdemServicoHistorico historico) {
+
+        return new OrdemServicoHistoricoResponseDTO(
+                historico.getId(),
+                historico.getStatusAnterior(),
+                historico.getStatusNovo(),
+                historico.getDataAlteracao()
+        );
     }
 
     private OrdemServicoResponseDTO converterParaResponse(
@@ -248,5 +300,6 @@ public class OrdemServicoService {
                 ordemServico.getDataConclusao()
         );
     }
+
 
 }

@@ -1,9 +1,6 @@
 package com.climaservice.api.controller;
 
-import com.climaservice.api.dto.AtualizarDiagnosticoRequestDTO;
-import com.climaservice.api.dto.AtualizarStatusOrdemServicoRequestDTO;
-import com.climaservice.api.dto.OrdemServicoRequestDTO;
-import com.climaservice.api.dto.OrdemServicoResponseDTO;
+import com.climaservice.api.dto.*;
 import com.climaservice.api.service.OrdemServicoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -81,5 +78,12 @@ public class OrdemServicoController {
         );
     }
 
-    
+    @GetMapping("/ordens-servico/{id}/historico")
+    public List<OrdemServicoHistoricoResponseDTO> listarHistorico(
+            @PathVariable Long id) {
+
+        return ordemServicoService.listarHistorico(id);
+    }
+
+
 }
