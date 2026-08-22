@@ -30,31 +30,16 @@ public class OrcamentoItem {
     @Column(nullable = false)
     private Integer quantidade;
 
-    @Column(
-            name = "valor_unitario",
-            nullable = false,
-            precision = 12,
-            scale = 2
-    )
+    @Column(name = "valor_unitario", nullable = false, precision = 12, scale = 2)
     private BigDecimal valorUnitario;
 
-    @Column(
-            nullable = false,
-            precision = 12,
-            scale = 2
-    )
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal;
 
     public OrcamentoItem() {
     }
 
-    public OrcamentoItem(
-            Orcamento orcamento,
-            TipoItemOrcamento tipo,
-            Servico servico,
-            String descricao,
-            Integer quantidade,
-            BigDecimal valorUnitario) {
+    public OrcamentoItem(Orcamento orcamento, TipoItemOrcamento tipo, Servico servico, String descricao, Integer quantidade, BigDecimal valorUnitario) {
 
         this.orcamento = orcamento;
         this.tipo = tipo;
@@ -98,9 +83,7 @@ public class OrcamentoItem {
         return subtotal;
     }
 
-    public void atualizar(
-            Integer quantidade,
-            BigDecimal valorUnitario) {
+    public void atualizar(Integer quantidade, BigDecimal valorUnitario) {
 
         this.quantidade = quantidade;
         this.valorUnitario = valorUnitario;
@@ -110,8 +93,6 @@ public class OrcamentoItem {
 
     private void recalcularSubtotal() {
 
-        this.subtotal = valorUnitario.multiply(
-                BigDecimal.valueOf(quantidade)
-        );
+        this.subtotal = valorUnitario.multiply(BigDecimal.valueOf(quantidade));
     }
 }

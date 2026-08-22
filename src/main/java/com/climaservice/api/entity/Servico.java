@@ -27,10 +27,7 @@ public class Servico {
     public Servico() {
     }
 
-    public Servico(
-            String nome,
-            String descricao,
-            BigDecimal valorPadrao) {
+    public Servico(String nome, String descricao, BigDecimal valorPadrao) {
 
         this.nome = nome;
         this.descricao = descricao;

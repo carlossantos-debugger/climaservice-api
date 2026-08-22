@@ -23,11 +23,7 @@ public class OrdemServicoService {
     private final EquipamentoRepository equipamentoRepository;
     private final OrdemServicoHistoricoRepository historicoRepository;
 
-    public OrdemServicoService(
-            OrdemServicoRepository ordemServicoRepository,
-            ClienteRepository clienteRepository,
-            EquipamentoRepository equipamentoRepository,
-            OrdemServicoHistoricoRepository historicoRepository) {
+    public OrdemServicoService(OrdemServicoRepository ordemServicoRepository, ClienteRepository clienteRepository, EquipamentoRepository equipamentoRepository, OrdemServicoHistoricoRepository historicoRepository) {
 
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
@@ -38,194 +34,114 @@ public class OrdemServicoService {
     @Transactional
     public OrdemServicoResponseDTO salvar(OrdemServicoRequestDTO dto) {
 
-        Cliente cliente = clienteRepository.findById(dto.clienteId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Cliente com ID "
-                                        + dto.clienteId()
-                                        + " não encontrado"
-                        )
-                );
+        Cliente cliente = clienteRepository.findById(dto.clienteId()).orElseThrow(() -> new ResourceNotFoundException("Cliente com ID " + dto.clienteId() + " não encontrado"));
 
-        Equipamento equipamento =
-                equipamentoRepository.findById(dto.equipamentoId())
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Equipamento com ID "
-                                                + dto.equipamentoId()
-                                                + " não encontrado"
-                                )
-                        );
+        Equipamento equipamento = equipamentoRepository.findById(dto.equipamentoId()).orElseThrow(() -> new ResourceNotFoundException("Equipamento com ID " + dto.equipamentoId() + " não encontrado"));
 
         validarEquipamentoDoCliente(cliente, equipamento);
 
         validarEquipamentoAtivo(equipamento);
 
-        OrdemServico ordemServico = new OrdemServico(
-                cliente,
-                equipamento,
-                dto.descricaoProblema()
-        );
+        OrdemServico ordemServico = new OrdemServico(cliente, equipamento, dto.descricaoProblema());
 
-        OrdemServico ordemServicoSalva =
-                ordemServicoRepository.save(ordemServico);
+        OrdemServico ordemServicoSalva = ordemServicoRepository.save(ordemServico);
 
-        OrdemServicoHistorico historico =
-                new OrdemServicoHistorico(
-                        ordemServicoSalva,
-                        null,
-                        StatusOrdemServico.ABERTA
-                );
+        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServicoSalva, null, StatusOrdemServico.ABERTA);
 
         historicoRepository.save(historico);
 
         return converterParaResponse(ordemServicoSalva);
     }
 
-    private void validarEquipamentoDoCliente(
-            Cliente cliente,
-            Equipamento equipamento) {
+    private void validarEquipamentoDoCliente(Cliente cliente, Equipamento equipamento) {
 
         if (!equipamento.getCliente().getId().equals(cliente.getId())) {
 
-            throw new BusinessRuleException(
-                    "O equipamento informado não pertence ao cliente"
-            );
+            throw new BusinessRuleException("O equipamento informado não pertence ao cliente");
         }
     }
 
-    private void validarEquipamentoAtivo(
-            Equipamento equipamento) {
+    private void validarEquipamentoAtivo(Equipamento equipamento) {
 
         if (equipamento.getStatus() != StatusEquipamento.ATIVO) {
 
-            throw new BusinessRuleException(
-                    "Não é possível abrir uma ordem de serviço "
-                            + "para um equipamento inativo"
-            );
+            throw new BusinessRuleException("Não é possível abrir uma ordem de serviço " + "para um equipamento inativo");
         }
     }
 
     @Transactional(readOnly = true)
     public List<OrdemServicoResponseDTO> listarTodas() {
 
-        return ordemServicoRepository.findAll()
-                .stream()
-                .map(this::converterParaResponse)
-                .toList();
+        return ordemServicoRepository.findAll().stream().map(this::converterParaResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public Optional<OrdemServicoResponseDTO> buscarPorId(Long id) {
 
-        return ordemServicoRepository.findById(id)
-                .map(this::converterParaResponse);
+        return ordemServicoRepository.findById(id).map(this::converterParaResponse);
     }
 
     @Transactional(readOnly = true)
-    public List<OrdemServicoResponseDTO> listarPorCliente(
-            Long clienteId) {
+    public List<OrdemServicoResponseDTO> listarPorCliente(Long clienteId) {
 
-        return ordemServicoRepository
-                .findByClienteId(clienteId)
-                .stream()
-                .map(this::converterParaResponse)
-                .toList();
+        return ordemServicoRepository.findByClienteId(clienteId).stream().map(this::converterParaResponse).toList();
     }
 
     @Transactional(readOnly = true)
-    public List<OrdemServicoResponseDTO> listarPorEquipamento(
-            Long equipamentoId) {
+    public List<OrdemServicoResponseDTO> listarPorEquipamento(Long equipamentoId) {
 
-        return ordemServicoRepository
-                .findByEquipamentoId(equipamentoId)
-                .stream()
-                .map(this::converterParaResponse)
-                .toList();
+        return ordemServicoRepository.findByEquipamentoId(equipamentoId).stream().map(this::converterParaResponse).toList();
     }
 
     @Transactional
-    public OrdemServicoResponseDTO atualizarDiagnostico(
-            Long id,
-            AtualizarDiagnosticoRequestDTO dto) {
+    public OrdemServicoResponseDTO atualizarDiagnostico(Long id, AtualizarDiagnosticoRequestDTO dto) {
 
-        OrdemServico ordemServico = ordemServicoRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Ordem de serviço com ID " + id + " não encontrada"
-                        )
-                );
+        OrdemServico ordemServico = ordemServicoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + id + " não encontrada"));
 
         if (ordemServico.getStatus() == StatusOrdemServico.CANCELADA) {
-            throw new BusinessRuleException(
-                    "Não é possível alterar o diagnóstico de uma ordem de serviço cancelada"
-            );
+            throw new BusinessRuleException("Não é possível alterar o diagnóstico de uma ordem de serviço cancelada");
         }
 
         if (ordemServico.getStatus() == StatusOrdemServico.CONCLUIDA) {
-            throw new BusinessRuleException(
-                    "Não é possível alterar o diagnóstico de uma ordem de serviço concluída"
-            );
+            throw new BusinessRuleException("Não é possível alterar o diagnóstico de uma ordem de serviço concluída");
         }
 
         ordemServico.setDiagnostico(dto.diagnostico());
 
-        OrdemServico ordemServicoAtualizada =
-                ordemServicoRepository.save(ordemServico);
+        OrdemServico ordemServicoAtualizada = ordemServicoRepository.save(ordemServico);
 
         return converterParaResponse(ordemServicoAtualizada);
     }
 
-    private void validarTransicaoStatus(
-            StatusOrdemServico atual,
-            StatusOrdemServico novo) {
+    private void validarTransicaoStatus(StatusOrdemServico atual, StatusOrdemServico novo) {
 
         boolean transicaoValida = switch (atual) {
 
-            case ABERTA -> novo == StatusOrdemServico.EM_ANDAMENTO
-                    || novo == StatusOrdemServico.CANCELADA;
+            case ABERTA -> novo == StatusOrdemServico.EM_ANDAMENTO || novo == StatusOrdemServico.CANCELADA;
 
-            case EM_ANDAMENTO -> novo == StatusOrdemServico.AGUARDANDO_CLIENTE
-                    || novo == StatusOrdemServico.CONCLUIDA
-                    || novo == StatusOrdemServico.CANCELADA;
+            case EM_ANDAMENTO ->
+                    novo == StatusOrdemServico.AGUARDANDO_CLIENTE || novo == StatusOrdemServico.CONCLUIDA || novo == StatusOrdemServico.CANCELADA;
 
-            case AGUARDANDO_CLIENTE -> novo == StatusOrdemServico.EM_ANDAMENTO
-                    || novo == StatusOrdemServico.CANCELADA;
+            case AGUARDANDO_CLIENTE -> novo == StatusOrdemServico.EM_ANDAMENTO || novo == StatusOrdemServico.CANCELADA;
 
             case CONCLUIDA, CANCELADA -> false;
         };
 
         if (!transicaoValida) {
-            throw new BusinessRuleException(
-                    "Transição de status inválida: "
-                            + atual
-                            + " -> "
-                            + novo
-            );
+            throw new BusinessRuleException("Transição de status inválida: " + atual + " -> " + novo);
         }
     }
 
     @Transactional
-    public OrdemServicoResponseDTO atualizarStatus(
-            Long id,
-            AtualizarStatusOrdemServicoRequestDTO dto) {
+    public OrdemServicoResponseDTO atualizarStatus(Long id, AtualizarStatusOrdemServicoRequestDTO dto) {
 
-        OrdemServico ordemServico = ordemServicoRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Ordem de serviço com ID " + id + " não encontrada"
-                        )
-                );
+        OrdemServico ordemServico = ordemServicoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + id + " não encontrada"));
 
         StatusOrdemServico novoStatus = dto.status();
 
-        StatusOrdemServico statusAnterior =
-                ordemServico.getStatus();
+        StatusOrdemServico statusAnterior = ordemServico.getStatus();
 
-        validarTransicaoStatus(
-                statusAnterior,
-                novoStatus
-        );
+        validarTransicaoStatus(statusAnterior, novoStatus);
 
         ordemServico.setStatus(novoStatus);
 
@@ -233,15 +149,9 @@ public class OrdemServicoService {
             ordemServico.setDataConclusao(LocalDateTime.now());
         }
 
-        OrdemServico ordemServicoAtualizada =
-                ordemServicoRepository.save(ordemServico);
+        OrdemServico ordemServicoAtualizada = ordemServicoRepository.save(ordemServico);
 
-        OrdemServicoHistorico historico =
-                new OrdemServicoHistorico(
-                        ordemServicoAtualizada,
-                        statusAnterior,
-                        novoStatus
-                );
+        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServicoAtualizada, statusAnterior, novoStatus);
 
         historicoRepository.save(historico);
 
@@ -249,56 +159,33 @@ public class OrdemServicoService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrdemServicoHistoricoResponseDTO> listarHistorico(
-            Long ordemServicoId) {
+    public List<OrdemServicoHistoricoResponseDTO> listarHistorico(Long ordemServicoId) {
 
         if (!ordemServicoRepository.existsById(ordemServicoId)) {
-            throw new ResourceNotFoundException(
-                    "Ordem de serviço com ID "
-                            + ordemServicoId
-                            + " não encontrada"
-            );
+            throw new ResourceNotFoundException("Ordem de serviço com ID " + ordemServicoId + " não encontrada");
         }
 
-        return historicoRepository
-                .findByOrdemServicoIdOrderByDataAlteracaoAsc(ordemServicoId)
-                .stream()
-                .map(this::converterHistoricoParaResponse)
-                .toList();
+        return historicoRepository.findByOrdemServicoIdOrderByDataAlteracaoAsc(ordemServicoId).stream().map(this::converterHistoricoParaResponse).toList();
     }
 
-    private OrdemServicoHistoricoResponseDTO converterHistoricoParaResponse(
-            OrdemServicoHistorico historico) {
+    private OrdemServicoHistoricoResponseDTO converterHistoricoParaResponse(OrdemServicoHistorico historico) {
 
-        return new OrdemServicoHistoricoResponseDTO(
-                historico.getId(),
-                historico.getStatusAnterior(),
-                historico.getStatusNovo(),
-                historico.getDataAlteracao()
-        );
+        return new OrdemServicoHistoricoResponseDTO(historico.getId(), historico.getStatusAnterior(), historico.getStatusNovo(), historico.getDataAlteracao());
     }
 
-    private OrdemServicoResponseDTO converterParaResponse(
-            OrdemServico ordemServico) {
+    private OrdemServicoResponseDTO converterParaResponse(OrdemServico ordemServico) {
 
-        return new OrdemServicoResponseDTO(
-                ordemServico.getId(),
+        return new OrdemServicoResponseDTO(ordemServico.getId(),
 
-                ordemServico.getCliente().getId(),
-                ordemServico.getCliente().getNome(),
+                ordemServico.getCliente().getId(), ordemServico.getCliente().getNome(),
 
-                ordemServico.getEquipamento().getId(),
-                ordemServico.getEquipamento().getMarca(),
-                ordemServico.getEquipamento().getModelo(),
+                ordemServico.getEquipamento().getId(), ordemServico.getEquipamento().getMarca(), ordemServico.getEquipamento().getModelo(),
 
-                ordemServico.getDescricaoProblema(),
-                ordemServico.getDiagnostico(),
+                ordemServico.getDescricaoProblema(), ordemServico.getDiagnostico(),
 
                 ordemServico.getStatus(),
 
-                ordemServico.getDataAbertura(),
-                ordemServico.getDataConclusao()
-        );
+                ordemServico.getDataAbertura(), ordemServico.getDataConclusao());
     }
 
 

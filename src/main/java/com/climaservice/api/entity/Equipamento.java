@@ -32,13 +32,7 @@ public class Equipamento {
     public Equipamento() {
     }
 
-    public Equipamento(
-            String marca,
-            String modelo,
-            Integer capacidadeBtu,
-            String numeroSerie,
-            String localInstalacao,
-            Cliente cliente) {
+    public Equipamento(String marca, String modelo, Integer capacidadeBtu, String numeroSerie, String localInstalacao, Cliente cliente) {
 
         this.marca = marca;
         this.modelo = modelo;

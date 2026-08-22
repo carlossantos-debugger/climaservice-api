@@ -23,14 +23,9 @@ public class ServicoService {
     @Transactional
     public ServicoResponseDTO salvar(ServicoRequestDTO dto) {
 
-        Servico servico = new Servico(
-                dto.nome(),
-                dto.descricao(),
-                dto.valorPadrao()
-        );
+        Servico servico = new Servico(dto.nome(), dto.descricao(), dto.valorPadrao());
 
-        Servico servicoSalvo =
-                servicoRepository.save(servico);
+        Servico servicoSalvo = servicoRepository.save(servico);
 
         return converterParaResponse(servicoSalvo);
     }
@@ -38,47 +33,31 @@ public class ServicoService {
     @Transactional(readOnly = true)
     public List<ServicoResponseDTO> listarTodos() {
 
-        return servicoRepository.findAll()
-                .stream()
-                .map(this::converterParaResponse)
-                .toList();
+        return servicoRepository.findAll().stream().map(this::converterParaResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public List<ServicoResponseDTO> listarAtivos() {
 
-        return servicoRepository
-                .findByAtivoTrueOrderByNomeAsc()
-                .stream()
-                .map(this::converterParaResponse)
-                .toList();
+        return servicoRepository.findByAtivoTrueOrderByNomeAsc().stream().map(this::converterParaResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public Optional<ServicoResponseDTO> buscarPorId(Long id) {
 
-        return servicoRepository.findById(id)
-                .map(this::converterParaResponse);
+        return servicoRepository.findById(id).map(this::converterParaResponse);
     }
 
     @Transactional
-    public ServicoResponseDTO atualizar(
-            Long id,
-            ServicoRequestDTO dto) {
+    public ServicoResponseDTO atualizar(Long id, ServicoRequestDTO dto) {
 
-        Servico servico = servicoRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Serviço com ID " + id + " não encontrado"
-                        )
-                );
+        Servico servico = servicoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Serviço com ID " + id + " não encontrado"));
 
         servico.setNome(dto.nome());
         servico.setDescricao(dto.descricao());
         servico.setValorPadrao(dto.valorPadrao());
 
-        Servico servicoAtualizado =
-                servicoRepository.save(servico);
+        Servico servicoAtualizado = servicoRepository.save(servico);
 
         return converterParaResponse(servicoAtualizado);
     }
@@ -90,8 +69,7 @@ public class ServicoService {
 
         servico.setAtivo(false);
 
-        Servico servicoAtualizado =
-                servicoRepository.save(servico);
+        Servico servicoAtualizado = servicoRepository.save(servico);
 
         return converterParaResponse(servicoAtualizado);
     }
@@ -103,31 +81,18 @@ public class ServicoService {
 
         servico.setAtivo(true);
 
-        Servico servicoAtualizado =
-                servicoRepository.save(servico);
+        Servico servicoAtualizado = servicoRepository.save(servico);
 
         return converterParaResponse(servicoAtualizado);
     }
 
     private Servico buscarEntidadePorId(Long id) {
 
-        return servicoRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Serviço com ID " + id + " não encontrado"
-                        )
-                );
+        return servicoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Serviço com ID " + id + " não encontrado"));
     }
 
-    private ServicoResponseDTO converterParaResponse(
-            Servico servico) {
+    private ServicoResponseDTO converterParaResponse(Servico servico) {
 
-        return new ServicoResponseDTO(
-                servico.getId(),
-                servico.getNome(),
-                servico.getDescricao(),
-                servico.getValorPadrao(),
-                servico.getAtivo()
-        );
+        return new ServicoResponseDTO(servico.getId(), servico.getNome(), servico.getDescricao(), servico.getValorPadrao(), servico.getAtivo());
     }
 }
