@@ -96,29 +96,6 @@ public class OrdemServicoService {
         }
     }
 
-    private OrdemServicoResponseDTO converterParaResponse(
-            OrdemServico ordemServico) {
-
-        return new OrdemServicoResponseDTO(
-                ordemServico.getId(),
-
-                ordemServico.getCliente().getId(),
-                ordemServico.getCliente().getNome(),
-
-                ordemServico.getEquipamento().getId(),
-                ordemServico.getEquipamento().getMarca(),
-                ordemServico.getEquipamento().getModelo(),
-
-                ordemServico.getDescricaoProblema(),
-                ordemServico.getDiagnostico(),
-
-                ordemServico.getStatus(),
-
-                ordemServico.getDataAbertura(),
-                ordemServico.getDataConclusao()
-        );
-    }
-
     @Transactional(readOnly = true)
     public List<OrdemServicoResponseDTO> listarTodas() {
 
@@ -157,7 +134,27 @@ public class OrdemServicoService {
                 .toList();
     }
 
-    
+    private OrdemServicoResponseDTO converterParaResponse(
+            OrdemServico ordemServico) {
 
+        return new OrdemServicoResponseDTO(
+                ordemServico.getId(),
+
+                ordemServico.getCliente().getId(),
+                ordemServico.getCliente().getNome(),
+
+                ordemServico.getEquipamento().getId(),
+                ordemServico.getEquipamento().getMarca(),
+                ordemServico.getEquipamento().getModelo(),
+
+                ordemServico.getDescricaoProblema(),
+                ordemServico.getDiagnostico(),
+
+                ordemServico.getStatus(),
+
+                ordemServico.getDataAbertura(),
+                ordemServico.getDataConclusao()
+        );
+    }
 
 }
