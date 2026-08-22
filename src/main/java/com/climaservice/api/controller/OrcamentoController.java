@@ -39,7 +39,7 @@ public class OrcamentoController {
         return ResponseEntity.ok(orcamentoService.buscarPorId(id));
     }
 
-    @PostMapping("/orcamentos/{orcamentoId}/itens")
+    @PostMapping("/orcamentos/{orcamentoId}/itens/servicos")
     public ResponseEntity<OrcamentoItemResponseDTO> adicionarItem(@PathVariable Long orcamentoId, @Valid @RequestBody OrcamentoItemRequestDTO dto) {
 
         OrcamentoItemResponseDTO item = orcamentoService.adicionarItem(orcamentoId, dto);
@@ -71,5 +71,13 @@ public class OrcamentoController {
         orcamentoService.removerItem(orcamentoId, itemId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/orcamentos/{orcamentoId}/itens/produtos")
+    public ResponseEntity<OrcamentoItemResponseDTO> adicionarProduto(@PathVariable Long orcamentoId, @Valid @RequestBody OrcamentoProdutoItemRequestDTO dto) {
+
+        OrcamentoItemResponseDTO item = orcamentoService.adicionarProduto(orcamentoId, dto);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(item);
     }
 }

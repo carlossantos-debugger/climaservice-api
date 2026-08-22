@@ -4,10 +4,7 @@ import com.climaservice.api.dto.*;
 import com.climaservice.api.entity.*;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
-import com.climaservice.api.repository.OrcamentoItemRepository;
-import com.climaservice.api.repository.OrcamentoRepository;
-import com.climaservice.api.repository.OrdemServicoRepository;
-import com.climaservice.api.repository.ServicoRepository;
+import com.climaservice.api.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +19,16 @@ public class OrcamentoService {
     private final OrcamentoItemRepository orcamentoItemRepository;
     private final OrdemServicoRepository ordemServicoRepository;
     private final ServicoRepository servicoRepository;
+    private final ProdutoRepository produtoRepository;
 
-    public OrcamentoService(OrcamentoRepository orcamentoRepository, OrcamentoItemRepository orcamentoItemRepository, OrdemServicoRepository ordemServicoRepository, ServicoRepository servicoRepository) {
+    public OrcamentoService(OrcamentoRepository orcamentoRepository, OrcamentoItemRepository orcamentoItemRepository, OrdemServicoRepository ordemServicoRepository, ServicoRepository servicoRepository, ProdutoRepository produtoRepository) {
 
         this.orcamentoRepository = orcamentoRepository;
         this.orcamentoItemRepository = orcamentoItemRepository;
         this.ordemServicoRepository = ordemServicoRepository;
         this.servicoRepository = servicoRepository;
+        this.produtoRepository = produtoRepository;
+
     }
 
     @Transactional
@@ -101,6 +101,28 @@ public class OrcamentoService {
         return converterItemParaResponse(itemSalvo);
     }
 
+    @Transactional
+    public OrcamentoItemResponseDTO adicionarProduto(Long orcamentoId, OrcamentoProdutoItemRequestDTO dto) {
+
+        Orcamento orcamento = buscarOrcamentoPorId(orcamentoId);
+
+        validarOrcamentoRascunho(orcamento);
+
+        Produto produto = produtoRepository.findById(dto.produtoId()).orElseThrow(() -> new ResourceNotFoundException("Produto com ID " + dto.produtoId() + " não encontrado"));
+
+        validarProdutoAtivo(produto);
+
+        BigDecimal valorUnitario = definirValorUnitarioProduto(dto, produto);
+
+        OrcamentoItem item = new OrcamentoItem(orcamento, TipoItemOrcamento.PECA, produto, produto.getNome(), dto.quantidade(), valorUnitario);
+
+        OrcamentoItem itemSalvo = orcamentoItemRepository.save(item);
+
+        recalcularValorTotal(orcamento);
+
+        return converterItemParaResponse(itemSalvo);
+    }
+
     private void validarOrcamentoRascunho(Orcamento orcamento) {
 
         if (orcamento.getStatus() != StatusOrcamento.RASCUNHO) {
@@ -136,7 +158,15 @@ public class OrcamentoService {
 
     private OrcamentoItemResponseDTO converterItemParaResponse(OrcamentoItem item) {
 
-        return new OrcamentoItemResponseDTO(item.getId(), item.getTipo(), item.getServico() != null ? item.getServico().getId() : null, item.getDescricao(), item.getQuantidade(), item.getValorUnitario(), item.getSubtotal());
+        return new OrcamentoItemResponseDTO(item.getId(),
+
+                item.getTipo(),
+
+                item.getServico() != null ? item.getServico().getId() : null,
+
+                item.getProduto() != null ? item.getProduto().getId() : null,
+
+                item.getDescricao(), item.getQuantidade(), item.getValorUnitario(), item.getSubtotal());
     }
 
     private BigDecimal definirValorUnitario(OrcamentoItemRequestDTO dto, Servico servico) {
@@ -253,6 +283,22 @@ public class OrcamentoService {
         orcamentoItemRepository.flush();
 
         recalcularValorTotal(orcamento);
+    }
+
+    private void validarProdutoAtivo(Produto produto) {
+
+        if (!Boolean.TRUE.equals(produto.getAtivo())) {
+            throw new BusinessRuleException("Não é possível adicionar um produto inativo ao orçamento");
+        }
+    }
+
+    private BigDecimal definirValorUnitarioProduto(OrcamentoProdutoItemRequestDTO dto, Produto produto) {
+
+        if (dto.valorUnitario() != null) {
+            return dto.valorUnitario();
+        }
+
+        return produto.getValorPadrao();
     }
 
     private OrcamentoResponseDTO converterParaResponse(Orcamento orcamento) {

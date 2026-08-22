@@ -12,6 +12,8 @@ public record OrcamentoItemResponseDTO(
 
         Long servicoId,
 
+        Long produtoId,
+
         String descricao,
 
         Integer quantidade,
