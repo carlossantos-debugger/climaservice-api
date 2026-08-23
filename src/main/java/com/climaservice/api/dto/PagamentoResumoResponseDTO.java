@@ -10,7 +10,11 @@ public record PagamentoResumoResponseDTO(
 
         BigDecimal totalPago,
 
-        BigDecimal saldoRestante
+        BigDecimal totalPendente,
+
+        BigDecimal saldoRestante,
+
+        BigDecimal valorDisponivelParaNovoPagamento
 
 ) {
 }
