@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ public class OrdemServicoController {
         this.ordemServicoService = ordemServicoService;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECNICO')")
     @PostMapping("/ordens-servico")
     public ResponseEntity<OrdemServicoResponseDTO> salvar(@Valid @RequestBody OrdemServicoRequestDTO dto) {
 
@@ -49,12 +51,14 @@ public class OrdemServicoController {
         return ordemServicoService.listarPorEquipamento(equipamentoId);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECNICO')")
     @PatchMapping("/ordens-servico/{id}/diagnostico")
     public ResponseEntity<OrdemServicoResponseDTO> atualizarDiagnostico(@PathVariable Long id, @Valid @RequestBody AtualizarDiagnosticoRequestDTO dto) {
 
         return ResponseEntity.ok(ordemServicoService.atualizarDiagnostico(id, dto));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECNICO')")
     @PatchMapping("/ordens-servico/{id}/status")
     public ResponseEntity<OrdemServicoResponseDTO> atualizarStatus(@PathVariable Long id, @Valid @RequestBody AtualizarStatusOrdemServicoRequestDTO dto) {
 
