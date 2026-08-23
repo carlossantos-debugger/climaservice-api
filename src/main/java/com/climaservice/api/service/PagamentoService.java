@@ -143,9 +143,13 @@ public class PagamentoService {
 
         BigDecimal totalPago = calcularTotalPorStatus(orcamentoId, StatusPagamento.CONFIRMADO);
 
+        BigDecimal totalPendente = calcularTotalPorStatus(orcamentoId, StatusPagamento.PENDENTE);
+
         BigDecimal saldoRestante = orcamento.getValorTotal().subtract(totalPago);
 
-        return new PagamentoResumoResponseDTO(orcamento.getId(), orcamento.getValorTotal(), totalPago, saldoRestante);
+        BigDecimal valorDisponivelParaNovoPagamento = saldoRestante.subtract(totalPendente);
+
+        return new PagamentoResumoResponseDTO(orcamento.getId(), orcamento.getValorTotal(), totalPago, totalPendente, saldoRestante, valorDisponivelParaNovoPagamento);
     }
 
     private PagamentoResponseDTO converterParaResponse(Pagamento pagamento) {
