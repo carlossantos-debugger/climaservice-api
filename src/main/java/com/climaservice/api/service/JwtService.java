@@ -6,6 +6,11 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import com.climaservice.api.entity.Usuario;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 
 import javax.crypto.SecretKey;
 import java.time.Instant;
@@ -37,5 +42,29 @@ public class JwtService {
         byte[] bytes = Decoders.BASE64.decode(secret);
 
         return Keys.hmacShaKeyFor(bytes);
+    }
+
+    public String extrairEmail(String token) {
+
+        return extrairClaims(token).getSubject();
+    }
+
+    public boolean tokenValido(String token, Usuario usuario) {
+
+        String email = extrairEmail(token);
+
+        return email.equalsIgnoreCase(usuario.getEmail()) && !tokenExpirado(token);
+    }
+
+    private boolean tokenExpirado(String token) {
+
+        Date expiracao = extrairClaims(token).getExpiration();
+
+        return expiracao.before(new Date());
+    }
+
+    private Claims extrairClaims(String token) {
+
+        return Jwts.parser().verifyWith(getChave()).build().parseSignedClaims(token).getPayload();
     }
 }
