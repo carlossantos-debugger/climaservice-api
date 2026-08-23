@@ -30,9 +30,9 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
 
-                        .anyRequest().authenticated())
+                        .requestMatchers("/usuarios/**").hasRole("ADMIN")
 
-                .exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
+                        .anyRequest().authenticated()).exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
 
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
