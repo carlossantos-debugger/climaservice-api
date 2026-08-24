@@ -9,7 +9,9 @@ public record OrdemServicoHistoricoResponseDTO(
         Long id,
         StatusOrdemServico statusAnterior,
         StatusOrdemServico statusNovo,
-        LocalDateTime dataAlteracao
+        LocalDateTime dataAlteracao,
+        Long usuarioId,
+        String usuarioNome
 
 ) {
 }
