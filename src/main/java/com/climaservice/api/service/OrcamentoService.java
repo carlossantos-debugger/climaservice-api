@@ -20,14 +20,18 @@ public class OrcamentoService {
     private final OrdemServicoRepository ordemServicoRepository;
     private final ServicoRepository servicoRepository;
     private final ProdutoRepository produtoRepository;
+    private final OrcamentoHistoricoRepository historicoRepository;
+    private final UsuarioAutenticadoService usuarioAutenticadoService;
 
-    public OrcamentoService(OrcamentoRepository orcamentoRepository, OrcamentoItemRepository orcamentoItemRepository, OrdemServicoRepository ordemServicoRepository, ServicoRepository servicoRepository, ProdutoRepository produtoRepository) {
+    public OrcamentoService(OrcamentoRepository orcamentoRepository, OrcamentoItemRepository orcamentoItemRepository, OrdemServicoRepository ordemServicoRepository, ServicoRepository servicoRepository, ProdutoRepository produtoRepository, OrcamentoHistoricoRepository historicoRepository, UsuarioAutenticadoService usuarioAutenticadoService) {
 
         this.orcamentoRepository = orcamentoRepository;
         this.orcamentoItemRepository = orcamentoItemRepository;
         this.ordemServicoRepository = ordemServicoRepository;
         this.servicoRepository = servicoRepository;
         this.produtoRepository = produtoRepository;
+        this.historicoRepository = historicoRepository;
+        this.usuarioAutenticadoService = usuarioAutenticadoService;
 
     }
 
@@ -41,6 +45,8 @@ public class OrcamentoService {
         Orcamento orcamento = new Orcamento(ordemServico, dto.observacao());
 
         Orcamento orcamentoSalvo = orcamentoRepository.save(orcamento);
+
+        registrarHistoricoStatus(orcamentoSalvo, null, StatusOrcamento.RASCUNHO);
 
         return converterParaResponse(orcamentoSalvo);
     }
@@ -204,6 +210,8 @@ public class OrcamentoService {
 
         Orcamento orcamentoAtualizado = orcamentoRepository.save(orcamento);
 
+        registrarHistoricoStatus(orcamentoAtualizado, statusAnterior, novoStatus);
+
         return converterParaResponse(orcamentoAtualizado);
     }
 
@@ -299,6 +307,30 @@ public class OrcamentoService {
         }
 
         return produto.getValorPadrao();
+    }
+
+    private void registrarHistoricoStatus(Orcamento orcamento, StatusOrcamento statusAnterior, StatusOrcamento statusNovo) {
+
+        Usuario usuarioAtual = usuarioAutenticadoService.obterUsuarioAtual();
+
+        OrcamentoHistorico historico = new OrcamentoHistorico(orcamento, statusAnterior, statusNovo, usuarioAtual);
+
+        historicoRepository.save(historico);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrcamentoHistoricoResponseDTO> listarHistorico(Long orcamentoId) {
+
+        if (!orcamentoRepository.existsById(orcamentoId)) {
+            throw new ResourceNotFoundException("Orçamento com ID " + orcamentoId + " não encontrado");
+        }
+
+        return historicoRepository.findByOrcamentoIdOrderByDataAlteracaoAsc(orcamentoId).stream().map(this::converterHistoricoParaResponse).toList();
+    }
+
+    private OrcamentoHistoricoResponseDTO converterHistoricoParaResponse(OrcamentoHistorico historico) {
+
+        return new OrcamentoHistoricoResponseDTO(historico.getId(), historico.getStatusAnterior(), historico.getStatusNovo(), historico.getDataAlteracao(), historico.getUsuario() != null ? historico.getUsuario().getId() : null, historico.getUsuario() != null ? historico.getUsuario().getNome() : null);
     }
 
     private OrcamentoResponseDTO converterParaResponse(Orcamento orcamento) {
