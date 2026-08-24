@@ -87,4 +87,10 @@ public class OrcamentoController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(item);
     }
+
+    @GetMapping("/orcamentos/{id}/historico")
+    public List<OrcamentoHistoricoResponseDTO> listarHistorico(@PathVariable Long id) {
+
+        return orcamentoService.listarHistorico(id);
+    }
 }

@@ -27,14 +27,19 @@ public class OrdemServicoHistorico {
     @Column(name = "data_alteracao", nullable = false)
     private LocalDateTime dataAlteracao;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
     public OrdemServicoHistorico() {
     }
 
-    public OrdemServicoHistorico(OrdemServico ordemServico, StatusOrdemServico statusAnterior, StatusOrdemServico statusNovo) {
+    public OrdemServicoHistorico(OrdemServico ordemServico, StatusOrdemServico statusAnterior, StatusOrdemServico statusNovo, Usuario usuario) {
 
         this.ordemServico = ordemServico;
         this.statusAnterior = statusAnterior;
         this.statusNovo = statusNovo;
+        this.usuario = usuario;
         this.dataAlteracao = LocalDateTime.now();
     }
 
@@ -56,5 +61,9 @@ public class OrdemServicoHistorico {
 
     public LocalDateTime getDataAlteracao() {
         return dataAlteracao;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
     }
 }
