@@ -1,5 +1,6 @@
 package com.climaservice.api.controller;
 
+import com.climaservice.api.dto.PagamentoHistoricoResponseDTO;
 import com.climaservice.api.dto.PagamentoRequestDTO;
 import com.climaservice.api.dto.PagamentoResponseDTO;
 import com.climaservice.api.dto.PagamentoResumoResponseDTO;
@@ -60,5 +61,11 @@ public class PagamentoController {
     public ResponseEntity<PagamentoResponseDTO> cancelar(@PathVariable Long id) {
 
         return ResponseEntity.ok(pagamentoService.cancelar(id));
+    }
+
+    @GetMapping("/pagamentos/{id}/historico")
+    public List<PagamentoHistoricoResponseDTO> listarHistorico(@PathVariable Long id) {
+
+        return pagamentoService.listarHistorico(id);
     }
 }
