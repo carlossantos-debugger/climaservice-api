@@ -4,12 +4,10 @@ import com.climaservice.api.dto.*;
 import com.climaservice.api.entity.*;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
-import com.climaservice.api.repository.ClienteRepository;
-import com.climaservice.api.repository.EquipamentoRepository;
-import com.climaservice.api.repository.OrdemServicoHistoricoRepository;
-import com.climaservice.api.repository.OrdemServicoRepository;
+import com.climaservice.api.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,13 +20,19 @@ public class OrdemServicoService {
     private final ClienteRepository clienteRepository;
     private final EquipamentoRepository equipamentoRepository;
     private final OrdemServicoHistoricoRepository historicoRepository;
+    private final UsuarioAutenticadoService usuarioAutenticadoService;
+    private final OrdemServicoDiagnosticoHistoricoRepository diagnosticoHistoricoRepository;
 
-    public OrdemServicoService(OrdemServicoRepository ordemServicoRepository, ClienteRepository clienteRepository, EquipamentoRepository equipamentoRepository, OrdemServicoHistoricoRepository historicoRepository) {
+
+    public OrdemServicoService(OrdemServicoRepository ordemServicoRepository, ClienteRepository clienteRepository, EquipamentoRepository equipamentoRepository, OrdemServicoHistoricoRepository historicoRepository, UsuarioAutenticadoService usuarioAutenticadoService, OrdemServicoDiagnosticoHistoricoRepository diagnosticoHistoricoRepository) {
 
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
         this.equipamentoRepository = equipamentoRepository;
         this.historicoRepository = historicoRepository;
+        this.usuarioAutenticadoService = usuarioAutenticadoService;
+        this.diagnosticoHistoricoRepository = diagnosticoHistoricoRepository;
+
     }
 
     @Transactional
@@ -46,9 +50,7 @@ public class OrdemServicoService {
 
         OrdemServico ordemServicoSalva = ordemServicoRepository.save(ordemServico);
 
-        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServicoSalva, null, StatusOrdemServico.ABERTA);
-
-        historicoRepository.save(historico);
+        registrarHistoricoStatus(ordemServicoSalva, null, StatusOrdemServico.ABERTA);
 
         return converterParaResponse(ordemServicoSalva);
     }
@@ -96,21 +98,22 @@ public class OrdemServicoService {
     @Transactional
     public OrdemServicoResponseDTO atualizarDiagnostico(Long id, AtualizarDiagnosticoRequestDTO dto) {
 
-        OrdemServico ordemServico = ordemServicoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + id + " não encontrada"));
+        OrdemServico ordemServico = buscarEntidadePorId(id);
 
-        if (ordemServico.getStatus() == StatusOrdemServico.CANCELADA) {
-            throw new BusinessRuleException("Não é possível alterar o diagnóstico de uma ordem de serviço cancelada");
+        if (ordemServico.getStatus() == StatusOrdemServico.CONCLUIDA || ordemServico.getStatus() == StatusOrdemServico.CANCELADA) {
+
+            throw new BusinessRuleException("Não é possível alterar o diagnóstico de uma ordem concluída ou cancelada");
         }
 
-        if (ordemServico.getStatus() == StatusOrdemServico.CONCLUIDA) {
-            throw new BusinessRuleException("Não é possível alterar o diagnóstico de uma ordem de serviço concluída");
-        }
+        String diagnosticoAnterior = ordemServico.getDiagnostico();
 
         ordemServico.setDiagnostico(dto.diagnostico());
 
-        OrdemServico ordemServicoAtualizada = ordemServicoRepository.save(ordemServico);
+        OrdemServico ordemAtualizada = ordemServicoRepository.save(ordemServico);
 
-        return converterParaResponse(ordemServicoAtualizada);
+        registrarHistoricoDiagnostico(ordemAtualizada, diagnosticoAnterior, dto.diagnostico());
+
+        return converterParaResponse(ordemAtualizada);
     }
 
     private void validarTransicaoStatus(StatusOrdemServico atual, StatusOrdemServico novo) {
@@ -135,7 +138,7 @@ public class OrdemServicoService {
     @Transactional
     public OrdemServicoResponseDTO atualizarStatus(Long id, AtualizarStatusOrdemServicoRequestDTO dto) {
 
-        OrdemServico ordemServico = ordemServicoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + id + " não encontrada"));
+        OrdemServico ordemServico = buscarEntidadePorId(id);
 
         StatusOrdemServico novoStatus = dto.status();
 
@@ -151,9 +154,7 @@ public class OrdemServicoService {
 
         OrdemServico ordemServicoAtualizada = ordemServicoRepository.save(ordemServico);
 
-        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServicoAtualizada, statusAnterior, novoStatus);
-
-        historicoRepository.save(historico);
+        registrarHistoricoStatus(ordemServicoAtualizada, statusAnterior, novoStatus);
 
         return converterParaResponse(ordemServicoAtualizada);
     }
@@ -170,7 +171,40 @@ public class OrdemServicoService {
 
     private OrdemServicoHistoricoResponseDTO converterHistoricoParaResponse(OrdemServicoHistorico historico) {
 
-        return new OrdemServicoHistoricoResponseDTO(historico.getId(), historico.getStatusAnterior(), historico.getStatusNovo(), historico.getDataAlteracao());
+        return new OrdemServicoHistoricoResponseDTO(historico.getId(), historico.getStatusAnterior(), historico.getStatusNovo(), historico.getDataAlteracao(), historico.getUsuario() != null ? historico.getUsuario().getId() : null, historico.getUsuario() != null ? historico.getUsuario().getNome() : null);
+    }
+
+    private OrdemServico buscarEntidadePorId(Long id) {
+
+        return ordemServicoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + id + " não encontrada"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrdemServicoDiagnosticoHistoricoResponseDTO> listarHistoricoDiagnostico(Long ordemServicoId) {
+
+        if (!ordemServicoRepository.existsById(ordemServicoId)) {
+            throw new ResourceNotFoundException("Ordem de serviço com ID " + ordemServicoId + " não encontrada");
+        }
+
+        return diagnosticoHistoricoRepository.findByOrdemServicoIdOrderByDataAlteracaoAsc(ordemServicoId).stream().map(this::converterDiagnosticoHistoricoParaResponse).toList();
+    }
+
+    private void registrarHistoricoStatus(OrdemServico ordemServico, StatusOrdemServico statusAnterior, StatusOrdemServico statusNovo) {
+
+        Usuario usuarioAtual = usuarioAutenticadoService.obterUsuarioAtual();
+
+        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServico, statusAnterior, statusNovo, usuarioAtual);
+
+        historicoRepository.save(historico);
+    }
+
+    private void registrarHistoricoDiagnostico(OrdemServico ordemServico, String diagnosticoAnterior, String diagnosticoNovo) {
+
+        Usuario usuarioAtual = usuarioAutenticadoService.obterUsuarioAtual();
+
+        OrdemServicoDiagnosticoHistorico historico = new OrdemServicoDiagnosticoHistorico(ordemServico, diagnosticoAnterior, diagnosticoNovo, usuarioAtual);
+
+        diagnosticoHistoricoRepository.save(historico);
     }
 
     private OrdemServicoResponseDTO converterParaResponse(OrdemServico ordemServico) {
@@ -186,6 +220,11 @@ public class OrdemServicoService {
                 ordemServico.getStatus(),
 
                 ordemServico.getDataAbertura(), ordemServico.getDataConclusao());
+    }
+
+    private OrdemServicoDiagnosticoHistoricoResponseDTO converterDiagnosticoHistoricoParaResponse(OrdemServicoDiagnosticoHistorico historico) {
+
+        return new OrdemServicoDiagnosticoHistoricoResponseDTO(historico.getId(), historico.getDiagnosticoAnterior(), historico.getDiagnosticoNovo(), historico.getDataAlteracao(), historico.getUsuario() != null ? historico.getUsuario().getId() : null, historico.getUsuario() != null ? historico.getUsuario().getNome() : null);
     }
 
 
