@@ -4,7 +4,7 @@ API REST para gerenciamento de serviços de climatização e manutenção de ar-
 
 O **ClimaService** está sendo desenvolvido como um projeto SaaS voltado para empresas e profissionais que trabalham com instalação, manutenção preventiva e manutenção corretiva de equipamentos de climatização.
 
-O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot, Angular e PostgreSQL**, aplicando conceitos e práticas utilizadas no desenvolvimento de sistemas reais, como arquitetura em camadas, regras de negócio, validações, relacionamentos entre entidades, tratamento global de erros e workflows de status.
+O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot, Angular e PostgreSQL**, aplicando conceitos e práticas utilizadas no desenvolvimento de sistemas reais, como arquitetura em camadas, regras de negócio, validações, relacionamentos entre entidades, tratamento global de erros, segurança com JWT, autorização por perfis e workflows de status.
 
 ---
 
@@ -22,11 +22,12 @@ O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot,
 - Gradle
 - Git
 - GitHub
+- Spring Security
+- JWT
+- BCrypt
 
 ### Planejadas
 
-- Spring Security
-- JWT
 - Flyway
 - JUnit
 - Mockito
@@ -51,8 +52,11 @@ Atualmente, a API possui os seguintes módulos:
 - Orçamentos
 - Itens de Orçamento
 - Catálogo de Produtos e Peças
+- Pagamentos
+- Usuários
+- Autenticação e Autorização
 
-Além dos CRUDs, o sistema já possui regras de negócio relacionadas ao ciclo de vida das ordens de serviço e dos orçamentos.
+Além dos CRUDs, o sistema já possui regras de negócio relacionadas ao ciclo de vida das ordens de serviço, orçamentos e pagamentos, além de autenticação com JWT e controle de acesso baseado em perfis.
 
 ---
 
@@ -591,6 +595,152 @@ Isso preserva o histórico financeiro dos orçamentos.
 
 ---
 
+# Pagamentos
+
+O módulo de pagamentos registra valores recebidos a partir de orçamentos aprovados.
+
+Um orçamento pode possuir múltiplos pagamentos, permitindo o controle de pagamentos parciais.
+
+### Formas de pagamento
+
+```text
+DINHEIRO
+PIX
+CARTAO_CREDITO
+CARTAO_DEBITO
+BOLETO
+TRANSFERENCIA
+```
+
+### Status
+
+```text
+PENDENTE
+CONFIRMADO
+CANCELADO
+```
+
+### Regras de negócio
+
+- Somente orçamentos com status `APROVADO` podem receber pagamentos.
+- Um orçamento pode possuir múltiplos pagamentos.
+- Todo novo pagamento começa como `PENDENTE`.
+- Apenas pagamentos pendentes podem ser confirmados ou cancelados.
+- Pagamentos confirmados e pendentes comprometem o saldo disponível para novos registros.
+- O sistema impede que a soma dos pagamentos ultrapasse o valor total do orçamento.
+- A data de criação é registrada automaticamente.
+- As datas de confirmação e cancelamento são registradas automaticamente.
+- Pagamentos cancelados permanecem armazenados para preservar o histórico financeiro.
+
+### Resumo financeiro
+
+O backend calcula informações como:
+
+- Valor total do orçamento
+- Total confirmado
+- Total pendente
+- Saldo restante
+- Valor disponível para um novo pagamento
+
+### Endpoints
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| POST | `/orcamentos/{orcamentoId}/pagamentos` | Registrar pagamento |
+| GET | `/orcamentos/{orcamentoId}/pagamentos` | Listar pagamentos do orçamento |
+| GET | `/orcamentos/{orcamentoId}/pagamentos/resumo` | Consultar resumo financeiro |
+| GET | `/pagamentos/{id}` | Buscar pagamento por ID |
+| PATCH | `/pagamentos/{id}/confirmar` | Confirmar pagamento |
+| PATCH | `/pagamentos/{id}/cancelar` | Cancelar pagamento |
+
+---
+
+# Usuários, Autenticação e Autorização
+
+A API utiliza **Spring Security**, **BCrypt** e **JWT** para autenticação e controle de acesso.
+
+### Perfis de usuário
+
+```text
+ADMIN
+ATENDENTE
+TECNICO
+```
+
+### Segurança de senhas
+
+As senhas não são armazenadas em texto puro. O backend utiliza `BCryptPasswordEncoder` para gerar e validar o hash das credenciais.
+
+```text
+senha recebida
+      ↓
+BCrypt
+      ↓
+senha_hash
+      ↓
+PostgreSQL
+```
+
+### Login e JWT
+
+O login é realizado por e-mail e senha:
+
+```http
+POST /auth/login
+```
+
+Após a validação das credenciais, a API retorna um JWT. Nas próximas requisições, o cliente envia:
+
+```http
+Authorization: Bearer <token>
+```
+
+O `JwtAuthFilter` valida a assinatura e a expiração do token, identifica o usuário, verifica se a conta continua ativa e registra a autenticação no `SecurityContext`.
+
+A aplicação utiliza `SessionCreationPolicy.STATELESS`, portanto o servidor não mantém sessão de login.
+
+### Usuários ativos e inativos
+
+Usuários podem ser inativados sem exclusão física. Usuários inativos não podem se autenticar, preservando referências futuras de histórico e auditoria.
+
+### Endpoints de usuários e autenticação
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| POST | `/auth/login` | Autenticar usuário e gerar JWT |
+| POST | `/usuarios` | Cadastrar usuário |
+| GET | `/usuarios` | Listar usuários |
+| GET | `/usuarios/{id}` | Buscar usuário |
+| PATCH | `/usuarios/{id}/ativar` | Ativar usuário |
+| PATCH | `/usuarios/{id}/inativar` | Inativar usuário |
+
+O gerenciamento de usuários é restrito ao perfil `ADMIN`.
+
+### Matriz de permissões
+
+| Operação | ADMIN | ATENDENTE | TECNICO |
+|---|:---:|:---:|:---:|
+| Gerenciar usuários | ✅ | ❌ | ❌ |
+| Consultar clientes | ✅ | ✅ | ✅ |
+| Cadastrar/alterar clientes | ✅ | ✅ | ❌ |
+| Excluir cliente | ✅ | ❌ | ❌ |
+| Consultar equipamentos | ✅ | ✅ | ✅ |
+| Gerenciar equipamentos | ✅ | ✅ | ❌ |
+| Abrir OS | ✅ | ✅ | ❌ |
+| Consultar OS | ✅ | ✅ | ✅ |
+| Registrar diagnóstico | ✅ | ❌ | ✅ |
+| Alterar status da OS | ✅ | ❌ | ✅ |
+| Consultar serviços/produtos | ✅ | ✅ | ✅ |
+| Gerenciar serviços/produtos | ✅ | ✅ | ❌ |
+| Consultar orçamentos | ✅ | ✅ | ✅ |
+| Gerenciar orçamentos | ✅ | ✅ | ❌ |
+| Consultar pagamentos | ✅ | ✅ | ✅ |
+| Registrar/confirmar/cancelar pagamentos | ✅ | ✅ | ❌ |
+
+As autorizações específicas são aplicadas com `@PreAuthorize`, enquanto a `SecurityConfig` define as regras globais de autenticação.
+
+---
+
 # Validações
 
 Os dados recebidos pela API são validados utilizando **Jakarta Bean Validation**.
@@ -686,10 +836,16 @@ Exemplo:
 
 # Arquitetura
 
-O backend utiliza arquitetura em camadas.
+O backend utiliza arquitetura em camadas e uma cadeia de segurança para as rotas protegidas.
 
 ```text
 HTTP Request
+     ↓
+JwtAuthFilter
+     ↓
+Spring Security / SecurityContext
+     ↓
+@PreAuthorize
      ↓
 Controller
      ↓
@@ -704,7 +860,7 @@ JPA / Hibernate
 PostgreSQL
 ```
 
-O `Service` manipula as entidades e aplica as regras de negócio antes de utilizar os repositories.
+O `JwtAuthFilter` identifica o usuário autenticado a partir do JWT. O `Service` manipula as entidades e aplica as regras de negócio antes de utilizar os repositories.
 
 Na resposta:
 
@@ -757,6 +913,7 @@ Representa erros e violações de regras da aplicação.
 ```text
 com.climaservice.api
 │
+├── config
 ├── controller
 │
 ├── dto
@@ -787,9 +944,14 @@ Cliente
               │
               └── Orcamento
                      │
-                     └── OrcamentoItem
-                           ├── Servico
-                           └── Produto
+                     ├── OrcamentoItem
+                     │     ├── Servico
+                     │     └── Produto
+                     │
+                     └── Pagamento
+
+Usuario
+└── RoleUsuario
 ```
 
 Principais relacionamentos:
@@ -824,6 +986,14 @@ Orcamento
 OrcamentoItem
 ```
 
+```text
+Orcamento
+   1
+   │
+   N
+Pagamento
+```
+
 ---
 
 # Banco de dados
@@ -836,6 +1006,8 @@ As configurações sensíveis são fornecidas através de variáveis de ambiente
 spring.datasource.url=${DB_URL}
 spring.datasource.username=${DB_USERNAME}
 spring.datasource.password=${DB_PASSWORD}
+jwt.secret=${JWT_SECRET}
+jwt.expiration=3600000
 ```
 
 Exemplo de configuração local:
@@ -844,6 +1016,7 @@ Exemplo de configuração local:
 DB_URL=jdbc:postgresql://localhost:5432/climaservice
 DB_USERNAME=climaservice_user
 DB_PASSWORD=sua_senha
+JWT_SECRET=sua_chave_base64
 ```
 
 > Não armazene credenciais reais diretamente no repositório.
@@ -886,6 +1059,7 @@ Configure as variáveis de ambiente:
 DB_URL
 DB_USERNAME
 DB_PASSWORD
+JWT_SECRET
 ```
 
 No Windows:
@@ -928,6 +1102,12 @@ Até o momento, o projeto utiliza conceitos como:
 - Cálculos monetários utilizando `BigDecimal`
 - Snapshot de valores financeiros
 - Ativação e inativação de registros
+- Spring Security
+- Hash de senhas com BCrypt
+- Autenticação stateless com JWT
+- Filtro JWT por requisição
+- Controle de acesso baseado em roles
+- Autorização por método com `@PreAuthorize`
 - Git com desenvolvimento por feature branches
 - Pull Requests para integração com a branch principal
 
@@ -959,17 +1139,23 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Catálogo de produtos e peças
 - [x] Ativação e inativação de produtos
 - [x] Inclusão de peças em orçamentos
+- [x] Pagamentos
+- [x] Pagamentos parciais
+- [x] Controle de saldo e valores pendentes
+- [x] Usuários e perfis
+- [x] Autenticação por e-mail e senha
+- [x] Hash de senhas com BCrypt
+- [x] Spring Security
+- [x] JWT
+- [x] Autenticação stateless
+- [x] Controle de usuários ativos/inativos
+- [x] Controle de permissões por role
+- [x] Autorização com `@PreAuthorize`
 
 ## Próximas etapas
 
-- [ ] Pagamentos
-- [ ] Técnicos e usuários
-- [ ] Autenticação
-- [ ] Spring Security
-- [ ] JWT
-- [ ] Controle de permissões
-- [ ] Multi-tenancy
 - [ ] Auditoria por usuário
+- [ ] Multi-tenancy
 - [ ] Agenda de atendimentos
 - [ ] Manutenção preventiva
 - [ ] Flyway
@@ -1012,7 +1198,7 @@ Além de desenvolver uma aplicação funcional para gestão de serviços de clim
 
 🚧 **Projeto em desenvolvimento**
 
-Atualmente, o backend já possui o fluxo principal de:
+Atualmente, o backend já cobre o fluxo principal de atendimento e financeiro:
 
 ```text
 Cliente
@@ -1028,20 +1214,24 @@ Orçamento
    └── Peças
    ↓
 Aprovação / Rejeição
-```
-
-A próxima etapa do projeto é implementar o módulo de **Pagamentos**, avançando o fluxo para:
-
-```text
-Atendimento
-   ↓
-Diagnóstico
-   ↓
-Orçamento
-   ↓
-Aprovação
-   ↓
-Execução
    ↓
 Pagamento
 ```
+
+A API também possui uma camada de segurança completa para o estágio atual do projeto:
+
+```text
+Login
+  ↓
+BCrypt
+  ↓
+JWT
+  ↓
+JwtAuthFilter
+  ↓
+SecurityContext
+  ↓
+Roles / @PreAuthorize
+```
+
+A próxima evolução planejada é adicionar **auditoria por usuário**, registrando quem executou alterações relevantes no sistema. Em seguida, o projeto poderá avançar para **multi-tenancy**, agenda de atendimentos, manutenção preventiva, testes automatizados e infraestrutura de entrega.
