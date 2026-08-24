@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class ServicoController {
         this.servicoService = servicoService;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PostMapping
     public ResponseEntity<ServicoResponseDTO> salvar(@Valid @RequestBody ServicoRequestDTO dto) {
 
@@ -44,21 +46,24 @@ public class ServicoController {
         return servicoService.buscarPorId(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PutMapping("/{id}")
     public ResponseEntity<ServicoResponseDTO> atualizar(@PathVariable Long id, @Valid @RequestBody ServicoRequestDTO dto) {
 
         return ResponseEntity.ok(servicoService.atualizar(id, dto));
     }
 
-    @PatchMapping("/{id}/inativar")
-    public ResponseEntity<ServicoResponseDTO> inativar(@PathVariable Long id) {
-
-        return ResponseEntity.ok(servicoService.inativar(id));
-    }
-
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PatchMapping("/{id}/ativar")
     public ResponseEntity<ServicoResponseDTO> ativar(@PathVariable Long id) {
 
         return ResponseEntity.ok(servicoService.ativar(id));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
+    @PatchMapping("/{id}/inativar")
+    public ResponseEntity<ServicoResponseDTO> inativar(@PathVariable Long id) {
+
+        return ResponseEntity.ok(servicoService.inativar(id));
     }
 }

@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class ProdutoController {
         this.produtoService = produtoService;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PostMapping
     public ResponseEntity<ProdutoResponseDTO> salvar(@Valid @RequestBody ProdutoRequestDTO dto) {
 
@@ -44,21 +46,25 @@ public class ProdutoController {
         return produtoService.buscarPorId(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PutMapping("/{id}")
     public ResponseEntity<ProdutoResponseDTO> atualizar(@PathVariable Long id, @Valid @RequestBody ProdutoRequestDTO dto) {
 
         return ResponseEntity.ok(produtoService.atualizar(id, dto));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
+    @PatchMapping("/{id}/ativar")
+    public ResponseEntity<ProdutoResponseDTO> ativar(@PathVariable Long id) {
+
+        return ResponseEntity.ok(produtoService.ativar(id));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PatchMapping("/{id}/inativar")
     public ResponseEntity<ProdutoResponseDTO> inativar(@PathVariable Long id) {
 
         return ResponseEntity.ok(produtoService.inativar(id));
     }
 
-    @PatchMapping("/{id}/ativar")
-    public ResponseEntity<ProdutoResponseDTO> ativar(@PathVariable Long id) {
-
-        return ResponseEntity.ok(produtoService.ativar(id));
-    }
 }
