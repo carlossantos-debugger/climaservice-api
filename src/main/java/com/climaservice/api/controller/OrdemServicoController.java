@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.climaservice.api.dto.*;
 
 import java.util.List;
 
@@ -69,6 +70,12 @@ public class OrdemServicoController {
     public List<OrdemServicoHistoricoResponseDTO> listarHistorico(@PathVariable Long id) {
 
         return ordemServicoService.listarHistorico(id);
+    }
+
+    @GetMapping("/ordens-servico/{id}/historico-diagnostico")
+    public List<OrdemServicoDiagnosticoHistoricoResponseDTO> listarHistoricoDiagnostico(@PathVariable Long id) {
+
+        return ordemServicoService.listarHistoricoDiagnostico(id);
     }
 
 

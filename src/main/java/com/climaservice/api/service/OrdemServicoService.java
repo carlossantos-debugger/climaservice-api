@@ -191,6 +191,16 @@ public class OrdemServicoService {
         return ordemServicoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + id + " não encontrada"));
     }
 
+    @Transactional(readOnly = true)
+    public List<OrdemServicoDiagnosticoHistoricoResponseDTO> listarHistoricoDiagnostico(Long ordemServicoId) {
+
+        if (!ordemServicoRepository.existsById(ordemServicoId)) {
+            throw new ResourceNotFoundException("Ordem de serviço com ID " + ordemServicoId + " não encontrada");
+        }
+
+        return diagnosticoHistoricoRepository.findByOrdemServicoIdOrderByDataAlteracaoAsc(ordemServicoId).stream().map(this::converterDiagnosticoHistoricoParaResponse).toList();
+    }
+
     private OrdemServicoResponseDTO converterParaResponse(OrdemServico ordemServico) {
 
         return new OrdemServicoResponseDTO(ordemServico.getId(),
@@ -204,6 +214,11 @@ public class OrdemServicoService {
                 ordemServico.getStatus(),
 
                 ordemServico.getDataAbertura(), ordemServico.getDataConclusao());
+    }
+
+    private OrdemServicoDiagnosticoHistoricoResponseDTO converterDiagnosticoHistoricoParaResponse(OrdemServicoDiagnosticoHistorico historico) {
+
+        return new OrdemServicoDiagnosticoHistoricoResponseDTO(historico.getId(), historico.getDiagnosticoAnterior(), historico.getDiagnosticoNovo(), historico.getDataAlteracao(), historico.getUsuario() != null ? historico.getUsuario().getId() : null, historico.getUsuario() != null ? historico.getUsuario().getNome() : null);
     }
 
 
