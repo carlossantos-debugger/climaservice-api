@@ -154,11 +154,7 @@ public class OrdemServicoService {
 
         OrdemServico ordemServicoAtualizada = ordemServicoRepository.save(ordemServico);
 
-        Usuario usuarioAtual = usuarioAutenticadoService.obterUsuarioAtual();
-
-        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServico, statusAnterior, novoStatus, usuarioAtual);
-
-        historicoRepository.save(historico);
+        registrarHistoricoStatus(ordemServicoAtualizada, statusAnterior, novoStatus);
 
         return converterParaResponse(ordemServicoAtualizada);
     }
