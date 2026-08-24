@@ -6,6 +6,7 @@ import com.climaservice.api.service.EquipamentoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class EquipamentoController {
         this.equipamentoService = equipamentoService;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PostMapping("/equipamentos")
     public ResponseEntity<EquipamentoResponseDTO> salvar(@Valid @RequestBody EquipamentoRequestDTO dto) {
 
@@ -38,18 +40,21 @@ public class EquipamentoController {
         return equipamentoService.buscarPorId(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PutMapping("/equipamentos/{id}")
     public ResponseEntity<EquipamentoResponseDTO> atualizar(@PathVariable Long id, @Valid @RequestBody EquipamentoRequestDTO dto) {
 
         return equipamentoService.atualizar(id, dto).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PatchMapping("/equipamentos/{id}/ativar")
     public ResponseEntity<EquipamentoResponseDTO> ativar(@PathVariable Long id) {
 
         return ResponseEntity.ok(equipamentoService.ativar(id));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PatchMapping("/equipamentos/{id}/inativar")
     public ResponseEntity<EquipamentoResponseDTO> inativar(@PathVariable Long id) {
 
