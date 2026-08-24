@@ -11,6 +11,7 @@ import com.climaservice.api.repository.OrdemServicoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -22,13 +23,15 @@ public class OrdemServicoService {
     private final ClienteRepository clienteRepository;
     private final EquipamentoRepository equipamentoRepository;
     private final OrdemServicoHistoricoRepository historicoRepository;
+    private final UsuarioAutenticadoService usuarioAutenticadoService;
 
-    public OrdemServicoService(OrdemServicoRepository ordemServicoRepository, ClienteRepository clienteRepository, EquipamentoRepository equipamentoRepository, OrdemServicoHistoricoRepository historicoRepository) {
+    public OrdemServicoService(OrdemServicoRepository ordemServicoRepository, ClienteRepository clienteRepository, EquipamentoRepository equipamentoRepository, OrdemServicoHistoricoRepository historicoRepository, UsuarioAutenticadoService usuarioAutenticadoService) {
 
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
         this.equipamentoRepository = equipamentoRepository;
         this.historicoRepository = historicoRepository;
+        this.usuarioAutenticadoService = usuarioAutenticadoService;
     }
 
     @Transactional
@@ -46,7 +49,9 @@ public class OrdemServicoService {
 
         OrdemServico ordemServicoSalva = ordemServicoRepository.save(ordemServico);
 
-        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServicoSalva, null, StatusOrdemServico.ABERTA);
+        Usuario usuarioAtual = usuarioAutenticadoService.obterUsuarioAtual();
+
+        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServicoSalva, null, StatusOrdemServico.ABERTA, usuarioAtual);
 
         historicoRepository.save(historico);
 
@@ -151,7 +156,9 @@ public class OrdemServicoService {
 
         OrdemServico ordemServicoAtualizada = ordemServicoRepository.save(ordemServico);
 
-        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServicoAtualizada, statusAnterior, novoStatus);
+        Usuario usuarioAtual = usuarioAutenticadoService.obterUsuarioAtual();
+
+        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServico, statusAnterior, novoStatus, usuarioAtual);
 
         historicoRepository.save(historico);
 
@@ -170,7 +177,7 @@ public class OrdemServicoService {
 
     private OrdemServicoHistoricoResponseDTO converterHistoricoParaResponse(OrdemServicoHistorico historico) {
 
-        return new OrdemServicoHistoricoResponseDTO(historico.getId(), historico.getStatusAnterior(), historico.getStatusNovo(), historico.getDataAlteracao());
+        return new OrdemServicoHistoricoResponseDTO(historico.getId(), historico.getStatusAnterior(), historico.getStatusNovo(), historico.getDataAlteracao(), historico.getUsuario() != null ? historico.getUsuario().getId() : null, historico.getUsuario() != null ? historico.getUsuario().getNome() : null);
     }
 
     private OrdemServicoResponseDTO converterParaResponse(OrdemServico ordemServico) {
