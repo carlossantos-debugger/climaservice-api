@@ -50,11 +50,7 @@ public class OrdemServicoService {
 
         OrdemServico ordemServicoSalva = ordemServicoRepository.save(ordemServico);
 
-        Usuario usuarioAtual = usuarioAutenticadoService.obterUsuarioAtual();
-
-        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServicoSalva, null, StatusOrdemServico.ABERTA, usuarioAtual);
-
-        historicoRepository.save(historico);
+        registrarHistoricoStatus(ordemServicoSalva, null, StatusOrdemServico.ABERTA);
 
         return converterParaResponse(ordemServicoSalva);
     }
@@ -113,13 +109,9 @@ public class OrdemServicoService {
 
         ordemServico.setDiagnostico(dto.diagnostico());
 
-        Usuario usuarioAtual = usuarioAutenticadoService.obterUsuarioAtual();
-
-        OrdemServicoDiagnosticoHistorico historico = new OrdemServicoDiagnosticoHistorico(ordemServico, diagnosticoAnterior, dto.diagnostico(), usuarioAtual);
-
-        diagnosticoHistoricoRepository.save(historico);
-
         OrdemServico ordemAtualizada = ordemServicoRepository.save(ordemServico);
+
+        registrarHistoricoDiagnostico(ordemAtualizada, diagnosticoAnterior, dto.diagnostico());
 
         return converterParaResponse(ordemAtualizada);
     }
@@ -146,7 +138,7 @@ public class OrdemServicoService {
     @Transactional
     public OrdemServicoResponseDTO atualizarStatus(Long id, AtualizarStatusOrdemServicoRequestDTO dto) {
 
-        OrdemServico ordemServico = ordemServicoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + id + " não encontrada"));
+        OrdemServico ordemServico = buscarEntidadePorId(id);
 
         StatusOrdemServico novoStatus = dto.status();
 
@@ -199,6 +191,24 @@ public class OrdemServicoService {
         }
 
         return diagnosticoHistoricoRepository.findByOrdemServicoIdOrderByDataAlteracaoAsc(ordemServicoId).stream().map(this::converterDiagnosticoHistoricoParaResponse).toList();
+    }
+
+    private void registrarHistoricoStatus(OrdemServico ordemServico, StatusOrdemServico statusAnterior, StatusOrdemServico statusNovo) {
+
+        Usuario usuarioAtual = usuarioAutenticadoService.obterUsuarioAtual();
+
+        OrdemServicoHistorico historico = new OrdemServicoHistorico(ordemServico, statusAnterior, statusNovo, usuarioAtual);
+
+        historicoRepository.save(historico);
+    }
+
+    private void registrarHistoricoDiagnostico(OrdemServico ordemServico, String diagnosticoAnterior, String diagnosticoNovo) {
+
+        Usuario usuarioAtual = usuarioAutenticadoService.obterUsuarioAtual();
+
+        OrdemServicoDiagnosticoHistorico historico = new OrdemServicoDiagnosticoHistorico(ordemServico, diagnosticoAnterior, diagnosticoNovo, usuarioAtual);
+
+        diagnosticoHistoricoRepository.save(historico);
     }
 
     private OrdemServicoResponseDTO converterParaResponse(OrdemServico ordemServico) {
