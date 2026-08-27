@@ -40,102 +40,102 @@ class PagamentoControllerSecurityIntegrationTest extends AbstractIntegrationTest
     void prepararBanco() {
 
         jdbcTemplate.execute("""
-        TRUNCATE TABLE
-            pagamento_historico,
-            pagamento,
-            orcamento_historico,
-            orcamento_item,
-            orcamento,
-            ordem_servico_diagnostico_historico,
-            ordem_servico_historico,
-            ordem_servico,
-            equipamento,
-            cliente,
-            usuario,
-            empresa
-        RESTART IDENTITY CASCADE
-        """);
+                TRUNCATE TABLE
+                    pagamento_historico,
+                    pagamento,
+                    orcamento_historico,
+                    orcamento_item,
+                    orcamento,
+                    ordem_servico_diagnostico_historico,
+                    ordem_servico_historico,
+                    ordem_servico,
+                    equipamento,
+                    cliente,
+                    usuario,
+                    empresa
+                RESTART IDENTITY CASCADE
+                """);
 
         jdbcTemplate.update("""
-        INSERT INTO empresa (
-            id,
-            nome,
-            cpf_cnpj,
-            ativo,
-            data_criacao
-        )
-        VALUES (
-            8001,
-            'ClimaService Teste',
-            NULL,
-            true,
-            CURRENT_TIMESTAMP
-        )
-        """);
+                INSERT INTO empresa (
+                    id,
+                    nome,
+                    cpf_cnpj,
+                    ativo,
+                    data_criacao
+                )
+                VALUES (
+                    8001,
+                    'ClimaService Teste',
+                    NULL,
+                    true,
+                    CURRENT_TIMESTAMP
+                )
+                """);
 
         jdbcTemplate.update("""
-        INSERT INTO usuario (
-            id,
-            ativo,
-            data_criacao,
-            email,
-            nome,
-            role,
-            senha_hash,
-            empresa_id
-        )
-        VALUES
-            (
-                9001,
-                true,
-                CURRENT_TIMESTAMP,
-                'admin@teste.com',
-                'Administrador Teste',
-                'ADMIN',
-                'hash-teste',
-                8001
-            ),
-            (
-                9002,
-                true,
-                CURRENT_TIMESTAMP,
-                'atendente@teste.com',
-                'Atendente Teste',
-                'ATENDENTE',
-                'hash-teste',
-                8001
-            ),
-            (
-                9003,
-                true,
-                CURRENT_TIMESTAMP,
-                'tecnico@teste.com',
-                'Técnico Teste',
-                'TECNICO',
-                'hash-teste',
-                8001
-            )
-        """);
+                INSERT INTO usuario (
+                    id,
+                    ativo,
+                    data_criacao,
+                    email,
+                    nome,
+                    role,
+                    senha_hash,
+                    empresa_id
+                )
+                VALUES
+                    (
+                        9001,
+                        true,
+                        CURRENT_TIMESTAMP,
+                        'admin@teste.com',
+                        'Administrador Teste',
+                        'ADMIN',
+                        'hash-teste',
+                        8001
+                    ),
+                    (
+                        9002,
+                        true,
+                        CURRENT_TIMESTAMP,
+                        'atendente@teste.com',
+                        'Atendente Teste',
+                        'ATENDENTE',
+                        'hash-teste',
+                        8001
+                    ),
+                    (
+                        9003,
+                        true,
+                        CURRENT_TIMESTAMP,
+                        'tecnico@teste.com',
+                        'Técnico Teste',
+                        'TECNICO',
+                        'hash-teste',
+                        8001
+                    )
+                """);
 
 // Cliente
         jdbcTemplate.update("""
-        INSERT INTO cliente (
-            id,
-            nome,
-            cpf_cnpj,
-            telefone,
-            email,
-            empresa_id
-        )
-        VALUES (
-            1001,
-            'Cliente Teste',
-            '12345678901',
-            '47999999999',
-            'cliente@teste.com',
-            8001
-        )
-        """);
+                INSERT INTO cliente (
+                    id,
+                    nome,
+                    cpf_cnpj,
+                    telefone,
+                    email,
+                    empresa_id
+                )
+                VALUES (
+                    1001,
+                    'Cliente Teste',
+                    '12345678901',
+                    '47999999999',
+                    'cliente@teste.com',
+                    8001
+                )
+                """);
 
         // Equipamento
         jdbcTemplate.update("""
@@ -287,22 +287,15 @@ class PagamentoControllerSecurityIntegrationTest extends AbstractIntegrationTest
                 WHERE orcamento_id = 4001
                 """, String.class);
 
-        Long usuarioAuditoria =
-                jdbcTemplate.queryForObject(
-                        """
-                                SELECT ph.usuario_id
-                                FROM pagamento_historico ph
-                                JOIN pagamento p
-                                    ON p.id = ph.pagamento_id
-                                WHERE p.orcamento_id = 4001
-                                """,
-                        Long.class
-                );
+        Long usuarioAuditoria = jdbcTemplate.queryForObject("""
+                SELECT ph.usuario_id
+                FROM pagamento_historico ph
+                JOIN pagamento p
+                    ON p.id = ph.pagamento_id
+                WHERE p.orcamento_id = 4001
+                """, Long.class);
 
-        assertEquals(
-                9001L,
-                usuarioAuditoria
-        );
+        assertEquals(9001L, usuarioAuditoria);
 
         assertEquals("PENDENTE", statusPagamento);
     }

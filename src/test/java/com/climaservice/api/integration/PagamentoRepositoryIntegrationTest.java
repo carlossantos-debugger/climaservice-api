@@ -17,8 +17,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
-class PagamentoRepositoryIntegrationTest
-        extends AbstractIntegrationTest {
+class PagamentoRepositoryIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private PagamentoRepository pagamentoRepository;
@@ -30,57 +29,57 @@ class PagamentoRepositoryIntegrationTest
     void prepararBanco() {
 
         jdbcTemplate.execute("""
-        TRUNCATE TABLE
-            pagamento_historico,
-            pagamento,
-            orcamento_historico,
-            orcamento_item,
-            orcamento,
-            ordem_servico_diagnostico_historico,
-            ordem_servico_historico,
-            ordem_servico,
-            equipamento,
-            cliente,
-            usuario,
-            empresa
-        RESTART IDENTITY CASCADE
-        """);
+                TRUNCATE TABLE
+                    pagamento_historico,
+                    pagamento,
+                    orcamento_historico,
+                    orcamento_item,
+                    orcamento,
+                    ordem_servico_diagnostico_historico,
+                    ordem_servico_historico,
+                    ordem_servico,
+                    equipamento,
+                    cliente,
+                    usuario,
+                    empresa
+                RESTART IDENTITY CASCADE
+                """);
 
         jdbcTemplate.update("""
-        INSERT INTO empresa (
-            id,
-            nome,
-            cpf_cnpj,
-            ativo,
-            data_criacao
-        )
-        VALUES (
-            8001,
-            'ClimaService Teste',
-            NULL,
-            true,
-            CURRENT_TIMESTAMP
-        )
-        """);
+                INSERT INTO empresa (
+                    id,
+                    nome,
+                    cpf_cnpj,
+                    ativo,
+                    data_criacao
+                )
+                VALUES (
+                    8001,
+                    'ClimaService Teste',
+                    NULL,
+                    true,
+                    CURRENT_TIMESTAMP
+                )
+                """);
 
         jdbcTemplate.update("""
-        INSERT INTO cliente (
-            id,
-            nome,
-            cpf_cnpj,
-            telefone,
-            email,
-            empresa_id
-        )
-        VALUES (
-            1001,
-            'Cliente Teste',
-            '12345678901',
-            '47999999999',
-            'cliente@teste.com',
-            8001
-        )
-        """);
+                INSERT INTO cliente (
+                    id,
+                    nome,
+                    cpf_cnpj,
+                    telefone,
+                    email,
+                    empresa_id
+                )
+                VALUES (
+                    1001,
+                    'Cliente Teste',
+                    '12345678901',
+                    '47999999999',
+                    'cliente@teste.com',
+                    8001
+                )
+                """);
 
         jdbcTemplate.update("""
                 INSERT INTO equipamento (

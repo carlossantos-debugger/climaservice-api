@@ -14,8 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-class ClimaServiceDatabaseIntegrationTest
-        extends AbstractIntegrationTest {
+class ClimaServiceDatabaseIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private DataSource dataSource;
