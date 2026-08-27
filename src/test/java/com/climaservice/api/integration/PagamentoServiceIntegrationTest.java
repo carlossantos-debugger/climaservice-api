@@ -121,27 +121,29 @@ class PagamentoServiceIntegrationTest extends AbstractIntegrationTest {
                 """);
 
         jdbcTemplate.update("""
-                INSERT INTO equipamento (
-                    id,
-                    capacidade_btu,
-                    local_instalacao,
-                    marca,
-                    modelo,
-                    numero_serie,
-                    cliente_id,
-                    status
-                )
-                VALUES (
-                    2001,
-                    12000,
-                    'Sala',
-                    'LG',
-                    'Dual Inverter',
-                    'SERIE-001',
-                    1001,
-                    'ATIVO'
-                )
-                """);
+        INSERT INTO equipamento (
+            id,
+            capacidade_btu,
+            local_instalacao,
+            marca,
+            modelo,
+            numero_serie,
+            cliente_id,
+            status,
+            empresa_id
+        )
+        VALUES (
+            2001,
+            12000,
+            'Sala',
+            'LG',
+            'Dual Inverter',
+            'SERIE-001',
+            1001,
+            'ATIVO',
+            8001
+        )
+        """);
 
         jdbcTemplate.update("""
                 INSERT INTO ordem_servico (
