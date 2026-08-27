@@ -31,10 +31,14 @@ public class Usuario {
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
+
     public Usuario() {
     }
 
-    public Usuario(String nome, String email, String senhaHash, RoleUsuario role) {
+    public Usuario(String nome, String email, String senhaHash, RoleUsuario role, Empresa empresa) {
 
         this.nome = nome;
         this.email = email;
@@ -42,6 +46,7 @@ public class Usuario {
         this.role = role;
         this.ativo = true;
         this.dataCriacao = LocalDateTime.now();
+        this.empresa = empresa;
     }
 
     public Long getId() {
@@ -70,6 +75,10 @@ public class Usuario {
 
     public void setSenhaHash(String senhaHash) {
         this.senhaHash = senhaHash;
+    }
+
+    public Empresa getEmpresa() {
+        return empresa;
     }
 
     public RoleUsuario getRole() {
