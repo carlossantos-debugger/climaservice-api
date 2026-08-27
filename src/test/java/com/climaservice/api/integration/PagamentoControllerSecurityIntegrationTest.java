@@ -117,23 +117,25 @@ class PagamentoControllerSecurityIntegrationTest extends AbstractIntegrationTest
             )
         """);
 
-        // Cliente
+// Cliente
         jdbcTemplate.update("""
-                INSERT INTO cliente (
-                    id,
-                    nome,
-                    cpf_cnpj,
-                    telefone,
-                    email
-                )
-                VALUES (
-                    1001,
-                    'Cliente Teste',
-                    '12345678901',
-                    '47999999999',
-                    'cliente@teste.com'
-                )
-                """);
+        INSERT INTO cliente (
+            id,
+            nome,
+            cpf_cnpj,
+            telefone,
+            email,
+            empresa_id
+        )
+        VALUES (
+            1001,
+            'Cliente Teste',
+            '12345678901',
+            '47999999999',
+            'cliente@teste.com',
+            8001
+        )
+        """);
 
         // Equipamento
         jdbcTemplate.update("""
