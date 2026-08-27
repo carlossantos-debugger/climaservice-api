@@ -46,41 +46,61 @@ class PagamentoServiceIntegrationTest
     void prepararBanco() {
 
         jdbcTemplate.execute("""
-                TRUNCATE TABLE
-                    pagamento_historico,
-                    pagamento,
-                    orcamento_historico,
-                    orcamento_item,
-                    orcamento,
-                    ordem_servico_diagnostico_historico,
-                    ordem_servico_historico,
-                    ordem_servico,
-                    equipamento,
-                    cliente,
-                    usuario
-                RESTART IDENTITY CASCADE
-                """);
+        TRUNCATE TABLE
+            pagamento_historico,
+            pagamento,
+            orcamento_historico,
+            orcamento_item,
+            orcamento,
+            ordem_servico_diagnostico_historico,
+            ordem_servico_historico,
+            ordem_servico,
+            equipamento,
+            cliente,
+            usuario,
+            empresa
+        RESTART IDENTITY CASCADE
+        """);
 
         jdbcTemplate.update("""
-                INSERT INTO usuario (
-                    id,
-                    ativo,
-                    data_criacao,
-                    email,
-                    nome,
-                    role,
-                    senha_hash
-                )
-                VALUES (
-                    9001,
-                    true,
-                    CURRENT_TIMESTAMP,
-                    'admin@teste.com',
-                    'Administrador Teste',
-                    'ADMIN',
-                    'hash-teste'
-                )
-                """);
+        INSERT INTO empresa (
+            id,
+            nome,
+            cpf_cnpj,
+            ativo,
+            data_criacao
+        )
+        VALUES (
+            8001,
+            'ClimaService Teste',
+            NULL,
+            true,
+            CURRENT_TIMESTAMP
+        )
+        """);
+
+        jdbcTemplate.update("""
+        INSERT INTO usuario (
+            id,
+            ativo,
+            data_criacao,
+            email,
+            nome,
+            role,
+            senha_hash,
+            empresa_id
+        )
+        VALUES (
+            9001,
+            true,
+            CURRENT_TIMESTAMP,
+            'admin@teste.com',
+            'Administrador Teste',
+            'ADMIN',
+            'hash-teste',
+            8001
+        )
+        """);
 
         jdbcTemplate.update("""
                 INSERT INTO cliente (

@@ -2,6 +2,7 @@ package com.climaservice.api.service;
 
 import com.climaservice.api.dto.UsuarioCadastroRequestDTO;
 import com.climaservice.api.dto.UsuarioResponseDTO;
+import com.climaservice.api.entity.Empresa;
 import com.climaservice.api.entity.Usuario;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
@@ -18,11 +19,13 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    UsuarioAutenticadoService usuarioAutenticadoService;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, UsuarioAutenticadoService usuarioAutenticadoService) {
 
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.usuarioAutenticadoService = usuarioAutenticadoService;
     }
 
     @Transactional
@@ -34,7 +37,9 @@ public class UsuarioService {
 
         String senhaHash = passwordEncoder.encode(dto.senha());
 
-        Usuario usuario = new Usuario(dto.nome().trim(), emailNormalizado, senhaHash, dto.role());
+        Empresa empresa = usuarioAutenticadoService.obterEmpresaAtual();
+
+        Usuario usuario = new Usuario(dto.nome().trim(), emailNormalizado, senhaHash, dto.role(), empresa);
 
         Usuario usuarioSalvo = usuarioRepository.save(usuario);
 
