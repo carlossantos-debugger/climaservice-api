@@ -27,8 +27,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class PagamentoServiceIntegrationTest
-        extends AbstractIntegrationTest {
+class PagamentoServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private PagamentoService pagamentoService;
@@ -46,80 +45,80 @@ class PagamentoServiceIntegrationTest
     void prepararBanco() {
 
         jdbcTemplate.execute("""
-        TRUNCATE TABLE
-            pagamento_historico,
-            pagamento,
-            orcamento_historico,
-            orcamento_item,
-            orcamento,
-            ordem_servico_diagnostico_historico,
-            ordem_servico_historico,
-            ordem_servico,
-            equipamento,
-            cliente,
-            usuario,
-            empresa
-        RESTART IDENTITY CASCADE
-        """);
+                TRUNCATE TABLE
+                    pagamento_historico,
+                    pagamento,
+                    orcamento_historico,
+                    orcamento_item,
+                    orcamento,
+                    ordem_servico_diagnostico_historico,
+                    ordem_servico_historico,
+                    ordem_servico,
+                    equipamento,
+                    cliente,
+                    usuario,
+                    empresa
+                RESTART IDENTITY CASCADE
+                """);
 
         jdbcTemplate.update("""
-        INSERT INTO empresa (
-            id,
-            nome,
-            cpf_cnpj,
-            ativo,
-            data_criacao
-        )
-        VALUES (
-            8001,
-            'ClimaService Teste',
-            NULL,
-            true,
-            CURRENT_TIMESTAMP
-        )
-        """);
+                INSERT INTO empresa (
+                    id,
+                    nome,
+                    cpf_cnpj,
+                    ativo,
+                    data_criacao
+                )
+                VALUES (
+                    8001,
+                    'ClimaService Teste',
+                    NULL,
+                    true,
+                    CURRENT_TIMESTAMP
+                )
+                """);
 
         jdbcTemplate.update("""
-        INSERT INTO usuario (
-            id,
-            ativo,
-            data_criacao,
-            email,
-            nome,
-            role,
-            senha_hash,
-            empresa_id
-        )
-        VALUES (
-            9001,
-            true,
-            CURRENT_TIMESTAMP,
-            'admin@teste.com',
-            'Administrador Teste',
-            'ADMIN',
-            'hash-teste',
-            8001
-        )
-        """);
+                INSERT INTO usuario (
+                    id,
+                    ativo,
+                    data_criacao,
+                    email,
+                    nome,
+                    role,
+                    senha_hash,
+                    empresa_id
+                )
+                VALUES (
+                    9001,
+                    true,
+                    CURRENT_TIMESTAMP,
+                    'admin@teste.com',
+                    'Administrador Teste',
+                    'ADMIN',
+                    'hash-teste',
+                    8001
+                )
+                """);
 
         jdbcTemplate.update("""
-        INSERT INTO cliente (
-            id,
-            nome,
-            cpf_cnpj,
-            telefone,
-            email,
-            empresa_id
-        )
-        VALUES (
-            1001,
-            'Cliente Teste',
-            '12345678901',
-            '47999999999',
-            'cliente@teste.com',
-            8001
-        )
-        """);
+                INSERT INTO cliente (
+                    id,
+                    nome,
+                    cpf_cnpj,
+                    telefone,
+                    email,
+                    empresa_id
+                )
+                VALUES (
+                    1001,
+                    'Cliente Teste',
+                    '12345678901',
+                    '47999999999',
+                    'cliente@teste.com',
+                    8001
+                )
+                """);
 
         jdbcTemplate.update("""
                 INSERT INTO equipamento (
