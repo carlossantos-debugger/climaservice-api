@@ -29,10 +29,18 @@ public class Equipamento {
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private StatusEquipamento status;
+
     public Equipamento() {
     }
 
-    public Equipamento(String marca, String modelo, Integer capacidadeBtu, String numeroSerie, String localInstalacao, Cliente cliente) {
+    public Equipamento(String marca, String modelo, Integer capacidadeBtu, String numeroSerie, String localInstalacao, Cliente cliente, Empresa empresa) {
 
         this.marca = marca;
         this.modelo = modelo;
@@ -41,6 +49,7 @@ public class Equipamento {
         this.localInstalacao = localInstalacao;
         this.cliente = cliente;
         this.status = StatusEquipamento.ATIVO;
+        this.empresa = empresa;
     }
 
     public Long getId() {
@@ -103,9 +112,9 @@ public class Equipamento {
         this.status = status;
     }
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private StatusEquipamento status;
+    public Empresa getEmpresa() {
+        return empresa;
+    }
 
 
 }
