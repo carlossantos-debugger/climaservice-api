@@ -107,25 +107,27 @@ class PagamentoRepositoryIntegrationTest extends AbstractIntegrationTest {
         """);
 
         jdbcTemplate.update("""
-                INSERT INTO ordem_servico (
-                    id,
-                    data_abertura,
-                    descricao_problema,
-                    diagnostico,
-                    status,
-                    cliente_id,
-                    equipamento_id
-                )
-                VALUES (
-                    3001,
-                    CURRENT_TIMESTAMP,
-                    'Equipamento não está resfriando',
-                    NULL,
-                    'ABERTA',
-                    1001,
-                    2001
-                )
-                """);
+        INSERT INTO ordem_servico (
+            id,
+            data_abertura,
+            descricao_problema,
+            diagnostico,
+            status,
+            cliente_id,
+            equipamento_id,
+            empresa_id
+        )
+        VALUES (
+            3001,
+            CURRENT_TIMESTAMP,
+            'Equipamento não está resfriando',
+            NULL,
+            'ABERTA',
+            1001,
+            2001,
+            8001
+        )
+        """);
 
         jdbcTemplate.update("""
                 INSERT INTO orcamento (
