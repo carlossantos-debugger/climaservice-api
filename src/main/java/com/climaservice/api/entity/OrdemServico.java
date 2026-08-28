@@ -36,10 +36,14 @@ public class OrdemServico {
     @Column(name = "data_conclusao")
     private LocalDateTime dataConclusao;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
+
     public OrdemServico() {
     }
 
-    public OrdemServico(Cliente cliente, Equipamento equipamento, String descricaoProblema) {
+    public OrdemServico(Cliente cliente, Equipamento equipamento, String descricaoProblema, Empresa  empresa) {
 
         this.cliente = cliente;
         this.equipamento = equipamento;
@@ -47,6 +51,7 @@ public class OrdemServico {
 
         this.status = StatusOrdemServico.ABERTA;
         this.dataAbertura = LocalDateTime.now();
+        this.empresa = empresa;
     }
 
     public Long getId() {
@@ -103,5 +108,9 @@ public class OrdemServico {
 
     public void setDataConclusao(LocalDateTime dataConclusao) {
         this.dataConclusao = dataConclusao;
+    }
+
+    public Empresa getEmpresa() {
+        return empresa;
     }
 }

@@ -1,14 +1,24 @@
 package com.climaservice.api.repository;
 
 import com.climaservice.api.entity.OrdemServico;
+
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
-public interface OrdemServicoRepository
-        extends JpaRepository<OrdemServico, Long> {
+public interface OrdemServicoRepository extends JpaRepository<OrdemServico, Long> {
 
-    List<OrdemServico> findByClienteId(Long clienteId);
+    @EntityGraph(attributePaths = {"cliente", "equipamento"})
+    List<OrdemServico> findByEmpresa_IdOrderByDataAberturaDesc(Long empresaId);
 
-    List<OrdemServico> findByEquipamentoId(Long equipamentoId);
+    @EntityGraph(attributePaths = {"cliente", "equipamento"})
+    Optional<OrdemServico> findByIdAndEmpresa_Id(Long id, Long empresaId);
+
+    @EntityGraph(attributePaths = {"cliente", "equipamento"})
+    List<OrdemServico> findByCliente_IdAndEmpresa_IdOrderByDataAberturaDesc(Long clienteId, Long empresaId);
+
+    @EntityGraph(attributePaths = {"cliente", "equipamento"})
+    List<OrdemServico> findByEquipamento_IdAndEmpresa_IdOrderByDataAberturaDesc(Long equipamentoId, Long empresaId);
 }

@@ -30,6 +30,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PagamentoServiceTest {
 
+    private static final Long EMPRESA_ID = 8001L;
+
     @Mock
     private PagamentoRepository pagamentoRepository;
 
@@ -46,6 +48,9 @@ class PagamentoServiceTest {
     private Orcamento orcamento;
 
     @Mock
+    private Empresa empresa;
+
+    @Mock
     private Usuario usuario;
 
     @InjectMocks
@@ -57,60 +62,49 @@ class PagamentoServiceTest {
 
         Long orcamentoId = 10L;
 
-        when(orcamentoRepository.findById(orcamentoId))
-                .thenReturn(Optional.of(orcamento));
+        prepararOrcamentoEncontrado(orcamentoId);
 
-        when(orcamento.getId())
-                .thenReturn(orcamentoId);
+        when(orcamento.getId()).thenReturn(orcamentoId);
 
-        when(orcamento.getStatus())
-                .thenReturn(StatusOrcamento.APROVADO);
+        when(orcamento.getStatus()).thenReturn(StatusOrcamento.APROVADO);
 
-        when(orcamento.getValorTotal())
-                .thenReturn(new BigDecimal("1000.00"));
+        when(orcamento.getValorTotal()).thenReturn(new BigDecimal("1000.00"));
 
-        when(pagamentoRepository.findByOrcamentoIdAndStatus(
-                orcamentoId,
-                StatusPagamento.CONFIRMADO
-        )).thenReturn(List.of());
+        when(orcamento.getEmpresa()).thenReturn(empresa);
 
-        when(pagamentoRepository.findByOrcamentoIdAndStatus(
-                orcamentoId,
-                StatusPagamento.PENDENTE
-        )).thenReturn(List.of());
+        when(pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdAndStatus(orcamentoId, EMPRESA_ID, StatusPagamento.CONFIRMADO)).thenReturn(List.of());
 
-        when(pagamentoRepository.save(any(Pagamento.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdAndStatus(orcamentoId, EMPRESA_ID, StatusPagamento.PENDENTE)).thenReturn(List.of());
 
-        when(usuarioAutenticadoService.obterUsuarioAtual())
-                .thenReturn(usuario);
+        when(pagamentoRepository.save(any(Pagamento.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        PagamentoRequestDTO dto = new PagamentoRequestDTO(
-                new BigDecimal("250.00"),
-                FormaPagamento.PIX,
-                "Pagamento válido"
-        );
+        when(usuarioAutenticadoService.obterUsuarioAtual()).thenReturn(usuario);
 
-        PagamentoResponseDTO response =
-                pagamentoService.criar(orcamentoId, dto);
+        PagamentoRequestDTO dto = new PagamentoRequestDTO(new BigDecimal("250.00"), FormaPagamento.PIX, "Pagamento válido");
+
+        PagamentoResponseDTO response = pagamentoService.criar(orcamentoId, dto);
 
         assertNotNull(response);
+
         assertEquals(StatusPagamento.PENDENTE, response.status());
+
         assertEquals(new BigDecimal("250.00"), response.valor());
+
         assertEquals(orcamentoId, response.orcamentoId());
 
-        ArgumentCaptor<Pagamento> captor =
-                ArgumentCaptor.forClass(Pagamento.class);
+        ArgumentCaptor<Pagamento> captor = ArgumentCaptor.forClass(Pagamento.class);
 
         verify(pagamentoRepository).save(captor.capture());
 
         Pagamento pagamentoSalvo = captor.getValue();
 
         assertEquals(StatusPagamento.PENDENTE, pagamentoSalvo.getStatus());
+
         assertEquals(new BigDecimal("250.00"), pagamentoSalvo.getValor());
 
-        verify(historicoRepository)
-                .save(any(PagamentoHistorico.class));
+        assertEquals(orcamento, pagamentoSalvo.getOrcamento());
+
+        verify(historicoRepository).save(any(PagamentoHistorico.class));
     }
 
 
@@ -119,35 +113,21 @@ class PagamentoServiceTest {
 
         Long orcamentoId = 10L;
 
-        when(orcamentoRepository.findById(orcamentoId))
-                .thenReturn(Optional.of(orcamento));
+        prepararOrcamentoEncontrado(orcamentoId);
 
-        when(orcamento.getStatus())
-                .thenReturn(StatusOrcamento.ENVIADO);
+        when(orcamento.getStatus()).thenReturn(StatusOrcamento.ENVIADO);
 
-        PagamentoRequestDTO dto = new PagamentoRequestDTO(
-                new BigDecimal("100.00"),
-                FormaPagamento.PIX,
-                "Teste"
-        );
+        PagamentoRequestDTO dto = new PagamentoRequestDTO(new BigDecimal("100.00"), FormaPagamento.PIX, "Teste");
 
-        BusinessRuleException exception = assertThrows(
-                BusinessRuleException.class,
-                () -> pagamentoService.criar(orcamentoId, dto)
-        );
+        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> pagamentoService.criar(orcamentoId, dto));
 
-        assertEquals(
-                "Somente orçamentos aprovados podem receber pagamentos",
-                exception.getMessage()
-        );
+        assertEquals("Somente orçamentos aprovados podem receber pagamentos", exception.getMessage());
 
-        verify(pagamentoRepository, never())
-                .save(any(Pagamento.class));
+        verify(pagamentoRepository, never()).save(any(Pagamento.class));
 
-        verify(historicoRepository, never())
-                .save(any(PagamentoHistorico.class));
+        verify(historicoRepository, never()).save(any(PagamentoHistorico.class));
 
-        verifyNoInteractions(usuarioAutenticadoService);
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -157,59 +137,38 @@ class PagamentoServiceTest {
         Long orcamentoId = 10L;
 
         Pagamento pagamentoConfirmado = mock(Pagamento.class);
+
         Pagamento pagamentoPendente = mock(Pagamento.class);
 
-        when(orcamentoRepository.findById(orcamentoId))
-                .thenReturn(Optional.of(orcamento));
+        prepararOrcamentoEncontrado(orcamentoId);
 
-        when(orcamento.getId())
-                .thenReturn(orcamentoId);
+        when(orcamento.getId()).thenReturn(orcamentoId);
 
-        when(orcamento.getStatus())
-                .thenReturn(StatusOrcamento.APROVADO);
+        when(orcamento.getStatus()).thenReturn(StatusOrcamento.APROVADO);
 
-        when(orcamento.getValorTotal())
-                .thenReturn(new BigDecimal("1000.00"));
+        when(orcamento.getValorTotal()).thenReturn(new BigDecimal("1000.00"));
 
-        when(pagamentoConfirmado.getValor())
-                .thenReturn(new BigDecimal("600.00"));
+        when(orcamento.getEmpresa()).thenReturn(empresa);
 
-        when(pagamentoPendente.getValor())
-                .thenReturn(new BigDecimal("300.00"));
+        when(pagamentoConfirmado.getValor()).thenReturn(new BigDecimal("600.00"));
 
-        when(pagamentoRepository.findByOrcamentoIdAndStatus(
-                orcamentoId,
-                StatusPagamento.CONFIRMADO
-        )).thenReturn(List.of(pagamentoConfirmado));
+        when(pagamentoPendente.getValor()).thenReturn(new BigDecimal("300.00"));
 
-        when(pagamentoRepository.findByOrcamentoIdAndStatus(
-                orcamentoId,
-                StatusPagamento.PENDENTE
-        )).thenReturn(List.of(pagamentoPendente));
+        when(pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdAndStatus(orcamentoId, EMPRESA_ID, StatusPagamento.CONFIRMADO)).thenReturn(List.of(pagamentoConfirmado));
 
-        PagamentoRequestDTO dto = new PagamentoRequestDTO(
-                new BigDecimal("150.00"),
-                FormaPagamento.PIX,
-                "Pagamento acima do saldo"
-        );
+        when(pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdAndStatus(orcamentoId, EMPRESA_ID, StatusPagamento.PENDENTE)).thenReturn(List.of(pagamentoPendente));
 
-        BusinessRuleException exception = assertThrows(
-                BusinessRuleException.class,
-                () -> pagamentoService.criar(orcamentoId, dto)
-        );
+        PagamentoRequestDTO dto = new PagamentoRequestDTO(new BigDecimal("150.00"), FormaPagamento.PIX, "Pagamento acima do saldo");
 
-        assertEquals(
-                "O valor do pagamento ultrapassa o saldo disponível de 100.00",
-                exception.getMessage()
-        );
+        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> pagamentoService.criar(orcamentoId, dto));
 
-        verify(pagamentoRepository, never())
-                .save(any(Pagamento.class));
+        assertEquals("O valor do pagamento ultrapassa o saldo disponível de 100.00", exception.getMessage());
 
-        verify(historicoRepository, never())
-                .save(any(PagamentoHistorico.class));
+        verify(pagamentoRepository, never()).save(any(Pagamento.class));
 
-        verifyNoInteractions(usuarioAutenticadoService);
+        verify(historicoRepository, never()).save(any(PagamentoHistorico.class));
+
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -219,59 +178,42 @@ class PagamentoServiceTest {
         Long orcamentoId = 10L;
 
         Pagamento pagamentoConfirmado = mock(Pagamento.class);
+
         Pagamento pagamentoPendente = mock(Pagamento.class);
 
-        when(orcamentoRepository.findById(orcamentoId))
-                .thenReturn(Optional.of(orcamento));
+        prepararOrcamentoEncontrado(orcamentoId);
 
-        when(orcamento.getId())
-                .thenReturn(orcamentoId);
+        when(orcamento.getId()).thenReturn(orcamentoId);
 
-        when(orcamento.getStatus())
-                .thenReturn(StatusOrcamento.APROVADO);
+        when(orcamento.getStatus()).thenReturn(StatusOrcamento.APROVADO);
 
-        when(orcamento.getValorTotal())
-                .thenReturn(new BigDecimal("1000.00"));
+        when(orcamento.getValorTotal()).thenReturn(new BigDecimal("1000.00"));
 
-        when(pagamentoConfirmado.getValor())
-                .thenReturn(new BigDecimal("600.00"));
+        when(orcamento.getEmpresa()).thenReturn(empresa);
 
-        when(pagamentoPendente.getValor())
-                .thenReturn(new BigDecimal("300.00"));
+        when(pagamentoConfirmado.getValor()).thenReturn(new BigDecimal("600.00"));
 
-        when(pagamentoRepository.findByOrcamentoIdAndStatus(
-                orcamentoId,
-                StatusPagamento.CONFIRMADO
-        )).thenReturn(List.of(pagamentoConfirmado));
+        when(pagamentoPendente.getValor()).thenReturn(new BigDecimal("300.00"));
 
-        when(pagamentoRepository.findByOrcamentoIdAndStatus(
-                orcamentoId,
-                StatusPagamento.PENDENTE
-        )).thenReturn(List.of(pagamentoPendente));
+        when(pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdAndStatus(orcamentoId, EMPRESA_ID, StatusPagamento.CONFIRMADO)).thenReturn(List.of(pagamentoConfirmado));
 
-        when(pagamentoRepository.save(any(Pagamento.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdAndStatus(orcamentoId, EMPRESA_ID, StatusPagamento.PENDENTE)).thenReturn(List.of(pagamentoPendente));
 
-        when(usuarioAutenticadoService.obterUsuarioAtual())
-                .thenReturn(usuario);
+        when(pagamentoRepository.save(any(Pagamento.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        PagamentoRequestDTO dto = new PagamentoRequestDTO(
-                new BigDecimal("100.00"),
-                FormaPagamento.PIX,
-                "Saldo exato"
-        );
+        when(usuarioAutenticadoService.obterUsuarioAtual()).thenReturn(usuario);
 
-        PagamentoResponseDTO response =
-                pagamentoService.criar(orcamentoId, dto);
+        PagamentoRequestDTO dto = new PagamentoRequestDTO(new BigDecimal("100.00"), FormaPagamento.PIX, "Saldo exato");
+
+        PagamentoResponseDTO response = pagamentoService.criar(orcamentoId, dto);
 
         assertNotNull(response);
+
         assertEquals(StatusPagamento.PENDENTE, response.status());
 
-        verify(pagamentoRepository)
-                .save(any(Pagamento.class));
+        verify(pagamentoRepository).save(any(Pagamento.class));
 
-        verify(historicoRepository)
-                .save(any(PagamentoHistorico.class));
+        verify(historicoRepository).save(any(PagamentoHistorico.class));
     }
 
 
@@ -280,28 +222,21 @@ class PagamentoServiceTest {
 
         Long orcamentoId = 999L;
 
-        when(orcamentoRepository.findById(orcamentoId))
-                .thenReturn(Optional.empty());
+        prepararEmpresaAtual();
 
-        PagamentoRequestDTO dto = new PagamentoRequestDTO(
-                new BigDecimal("100.00"),
-                FormaPagamento.PIX,
-                "Teste"
-        );
+        when(orcamentoRepository.findByIdAndEmpresa_Id(orcamentoId, EMPRESA_ID)).thenReturn(Optional.empty());
 
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> pagamentoService.criar(orcamentoId, dto)
-        );
+        PagamentoRequestDTO dto = new PagamentoRequestDTO(new BigDecimal("100.00"), FormaPagamento.PIX, "Teste");
 
-        assertEquals(
-                "Orçamento com ID 999 não encontrado",
-                exception.getMessage()
-        );
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> pagamentoService.criar(orcamentoId, dto));
+
+        assertEquals("Orçamento com ID 999 não encontrado", exception.getMessage());
 
         verifyNoInteractions(pagamentoRepository);
+
         verifyNoInteractions(historicoRepository);
-        verifyNoInteractions(usuarioAutenticadoService);
+
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -310,39 +245,31 @@ class PagamentoServiceTest {
 
         Long pagamentoId = 1L;
 
-        when(orcamento.getId())
-                .thenReturn(10L);
+        when(orcamento.getId()).thenReturn(10L);
 
-        Pagamento pagamento = new Pagamento(
-                orcamento,
-                new BigDecimal("100.00"),
-                FormaPagamento.PIX,
-                "Pagamento"
-        );
+        Pagamento pagamento = new Pagamento(orcamento, new BigDecimal("100.00"), FormaPagamento.PIX, "Pagamento");
 
-        when(pagamentoRepository.findById(pagamentoId))
-                .thenReturn(Optional.of(pagamento));
+        prepararPagamentoEncontrado(pagamentoId, pagamento);
 
-        when(pagamentoRepository.save(any(Pagamento.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(pagamentoRepository.save(any(Pagamento.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(usuarioAutenticadoService.obterUsuarioAtual())
-                .thenReturn(usuario);
+        when(usuarioAutenticadoService.obterUsuarioAtual()).thenReturn(usuario);
 
-        PagamentoResponseDTO response =
-                pagamentoService.confirmar(pagamentoId);
+        PagamentoResponseDTO response = pagamentoService.confirmar(pagamentoId);
 
         assertNotNull(response);
+
         assertEquals(StatusPagamento.CONFIRMADO, response.status());
+
         assertEquals(StatusPagamento.CONFIRMADO, pagamento.getStatus());
 
         assertNotNull(pagamento.getDataConfirmacao());
 
-        verify(pagamentoRepository).findById(pagamentoId);
+        verify(pagamentoRepository).findByIdAndOrcamento_Empresa_Id(pagamentoId, EMPRESA_ID);
+
         verify(pagamentoRepository).save(pagamento);
 
-        verify(historicoRepository)
-                .save(any(PagamentoHistorico.class));
+        verify(historicoRepository).save(any(PagamentoHistorico.class));
     }
 
 
@@ -353,31 +280,21 @@ class PagamentoServiceTest {
 
         Pagamento pagamento = mock(Pagamento.class);
 
-        when(pagamento.getStatus())
-                .thenReturn(StatusPagamento.CONFIRMADO);
+        when(pagamento.getStatus()).thenReturn(StatusPagamento.CONFIRMADO);
 
-        when(pagamentoRepository.findById(pagamentoId))
-                .thenReturn(Optional.of(pagamento));
+        prepararPagamentoEncontrado(pagamentoId, pagamento);
 
-        BusinessRuleException exception = assertThrows(
-                BusinessRuleException.class,
-                () -> pagamentoService.confirmar(pagamentoId)
-        );
+        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> pagamentoService.confirmar(pagamentoId));
 
-        assertEquals(
-                "Somente pagamentos pendentes podem ser alterados",
-                exception.getMessage()
-        );
+        assertEquals("Somente pagamentos pendentes podem ser alterados", exception.getMessage());
 
-        verify(pagamentoRepository).findById(pagamentoId);
+        verify(pagamentoRepository).findByIdAndOrcamento_Empresa_Id(pagamentoId, EMPRESA_ID);
 
-        verify(pagamentoRepository, never())
-                .save(any(Pagamento.class));
+        verify(pagamentoRepository, never()).save(any(Pagamento.class));
 
-        verify(historicoRepository, never())
-                .save(any(PagamentoHistorico.class));
+        verify(historicoRepository, never()).save(any(PagamentoHistorico.class));
 
-        verifyNoInteractions(usuarioAutenticadoService);
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -386,38 +303,31 @@ class PagamentoServiceTest {
 
         Long pagamentoId = 1L;
 
-        when(orcamento.getId())
-                .thenReturn(10L);
+        when(orcamento.getId()).thenReturn(10L);
 
-        Pagamento pagamento = new Pagamento(
-                orcamento,
-                new BigDecimal("100.00"),
-                FormaPagamento.PIX,
-                "Pagamento"
-        );
+        Pagamento pagamento = new Pagamento(orcamento, new BigDecimal("100.00"), FormaPagamento.PIX, "Pagamento");
 
-        when(pagamentoRepository.findById(pagamentoId))
-                .thenReturn(Optional.of(pagamento));
+        prepararPagamentoEncontrado(pagamentoId, pagamento);
 
-        when(pagamentoRepository.save(any(Pagamento.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(pagamentoRepository.save(any(Pagamento.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(usuarioAutenticadoService.obterUsuarioAtual())
-                .thenReturn(usuario);
+        when(usuarioAutenticadoService.obterUsuarioAtual()).thenReturn(usuario);
 
-        PagamentoResponseDTO response =
-                pagamentoService.cancelar(pagamentoId);
+        PagamentoResponseDTO response = pagamentoService.cancelar(pagamentoId);
 
         assertNotNull(response);
+
         assertEquals(StatusPagamento.CANCELADO, response.status());
+
         assertEquals(StatusPagamento.CANCELADO, pagamento.getStatus());
 
         assertNotNull(pagamento.getDataCancelamento());
 
+        verify(pagamentoRepository).findByIdAndOrcamento_Empresa_Id(pagamentoId, EMPRESA_ID);
+
         verify(pagamentoRepository).save(pagamento);
 
-        verify(historicoRepository)
-                .save(any(PagamentoHistorico.class));
+        verify(historicoRepository).save(any(PagamentoHistorico.class));
     }
 
 
@@ -428,29 +338,19 @@ class PagamentoServiceTest {
 
         Pagamento pagamento = mock(Pagamento.class);
 
-        when(pagamento.getStatus())
-                .thenReturn(StatusPagamento.CANCELADO);
+        when(pagamento.getStatus()).thenReturn(StatusPagamento.CANCELADO);
 
-        when(pagamentoRepository.findById(pagamentoId))
-                .thenReturn(Optional.of(pagamento));
+        prepararPagamentoEncontrado(pagamentoId, pagamento);
 
-        BusinessRuleException exception = assertThrows(
-                BusinessRuleException.class,
-                () -> pagamentoService.cancelar(pagamentoId)
-        );
+        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> pagamentoService.cancelar(pagamentoId));
 
-        assertEquals(
-                "Somente pagamentos pendentes podem ser alterados",
-                exception.getMessage()
-        );
+        assertEquals("Somente pagamentos pendentes podem ser alterados", exception.getMessage());
 
-        verify(pagamentoRepository, never())
-                .save(any(Pagamento.class));
+        verify(pagamentoRepository, never()).save(any(Pagamento.class));
 
-        verify(historicoRepository, never())
-                .save(any(PagamentoHistorico.class));
+        verify(historicoRepository, never()).save(any(PagamentoHistorico.class));
 
-        verifyNoInteractions(usuarioAutenticadoService);
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -459,28 +359,23 @@ class PagamentoServiceTest {
 
         Long pagamentoId = 1L;
 
-        when(orcamento.getId())
-                .thenReturn(10L);
+        when(orcamento.getId()).thenReturn(10L);
 
-        Pagamento pagamento = new Pagamento(
-                orcamento,
-                new BigDecimal("150.00"),
-                FormaPagamento.PIX,
-                "Pagamento"
-        );
+        Pagamento pagamento = new Pagamento(orcamento, new BigDecimal("150.00"), FormaPagamento.PIX, "Pagamento");
 
-        when(pagamentoRepository.findById(pagamentoId))
-                .thenReturn(Optional.of(pagamento));
+        prepararPagamentoEncontrado(pagamentoId, pagamento);
 
-        PagamentoResponseDTO response =
-                pagamentoService.buscarPorId(pagamentoId);
+        PagamentoResponseDTO response = pagamentoService.buscarPorId(pagamentoId);
 
         assertNotNull(response);
+
         assertEquals(new BigDecimal("150.00"), response.valor());
+
         assertEquals(StatusPagamento.PENDENTE, response.status());
+
         assertEquals(10L, response.orcamentoId());
 
-        verify(pagamentoRepository).findById(pagamentoId);
+        verify(pagamentoRepository).findByIdAndOrcamento_Empresa_Id(pagamentoId, EMPRESA_ID);
     }
 
 
@@ -489,18 +384,15 @@ class PagamentoServiceTest {
 
         Long pagamentoId = 999L;
 
-        when(pagamentoRepository.findById(pagamentoId))
-                .thenReturn(Optional.empty());
+        prepararEmpresaAtual();
 
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> pagamentoService.buscarPorId(pagamentoId)
-        );
+        when(pagamentoRepository.findByIdAndOrcamento_Empresa_Id(pagamentoId, EMPRESA_ID)).thenReturn(Optional.empty());
 
-        assertEquals(
-                "Pagamento com ID 999 não encontrado",
-                exception.getMessage()
-        );
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> pagamentoService.buscarPorId(pagamentoId));
+
+        assertEquals("Pagamento com ID 999 não encontrado", exception.getMessage());
+
+        verify(pagamentoRepository).findByIdAndOrcamento_Empresa_Id(pagamentoId, EMPRESA_ID);
     }
 
 
@@ -509,44 +401,25 @@ class PagamentoServiceTest {
 
         Long orcamentoId = 10L;
 
-        when(orcamentoRepository.findById(orcamentoId))
-                .thenReturn(Optional.of(orcamento));
+        prepararOrcamentoEncontrado(orcamentoId);
 
-        when(orcamento.getId())
-                .thenReturn(orcamentoId);
+        when(orcamento.getId()).thenReturn(orcamentoId);
 
-        Pagamento pagamento1 = new Pagamento(
-                orcamento,
-                new BigDecimal("100.00"),
-                FormaPagamento.PIX,
-                "Pagamento 1"
-        );
+        when(orcamento.getEmpresa()).thenReturn(empresa);
 
-        Pagamento pagamento2 = new Pagamento(
-                orcamento,
-                new BigDecimal("200.00"),
-                FormaPagamento.DINHEIRO,
-                "Pagamento 2"
-        );
+        Pagamento pagamento1 = new Pagamento(orcamento, new BigDecimal("100.00"), FormaPagamento.PIX, "Pagamento 1");
 
-        when(pagamentoRepository
-                .findByOrcamentoIdOrderByDataCriacaoAsc(orcamentoId))
-                .thenReturn(List.of(pagamento1, pagamento2));
+        Pagamento pagamento2 = new Pagamento(orcamento, new BigDecimal("200.00"), FormaPagamento.DINHEIRO, "Pagamento 2");
 
-        List<PagamentoResponseDTO> pagamentos =
-                pagamentoService.listarPorOrcamento(orcamentoId);
+        when(pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdOrderByDataCriacaoAsc(orcamentoId, EMPRESA_ID)).thenReturn(List.of(pagamento1, pagamento2));
+
+        List<PagamentoResponseDTO> pagamentos = pagamentoService.listarPorOrcamento(orcamentoId);
 
         assertEquals(2, pagamentos.size());
 
-        assertEquals(
-                new BigDecimal("100.00"),
-                pagamentos.get(0).valor()
-        );
+        assertEquals(new BigDecimal("100.00"), pagamentos.get(0).valor());
 
-        assertEquals(
-                new BigDecimal("200.00"),
-                pagamentos.get(1).valor()
-        );
+        assertEquals(new BigDecimal("200.00"), pagamentos.get(1).valor());
     }
 
 
@@ -556,64 +429,40 @@ class PagamentoServiceTest {
         Long orcamentoId = 10L;
 
         Pagamento confirmado1 = mock(Pagamento.class);
+
         Pagamento confirmado2 = mock(Pagamento.class);
+
         Pagamento pendente = mock(Pagamento.class);
 
-        when(orcamentoRepository.findById(orcamentoId))
-                .thenReturn(Optional.of(orcamento));
+        prepararOrcamentoEncontrado(orcamentoId);
 
-        when(orcamento.getId())
-                .thenReturn(orcamentoId);
+        when(orcamento.getId()).thenReturn(orcamentoId);
 
-        when(orcamento.getValorTotal())
-                .thenReturn(new BigDecimal("1000.00"));
+        when(orcamento.getEmpresa()).thenReturn(empresa);
 
-        when(confirmado1.getValor())
-                .thenReturn(new BigDecimal("300.00"));
+        when(orcamento.getValorTotal()).thenReturn(new BigDecimal("1000.00"));
 
-        when(confirmado2.getValor())
-                .thenReturn(new BigDecimal("200.00"));
+        when(confirmado1.getValor()).thenReturn(new BigDecimal("300.00"));
 
-        when(pendente.getValor())
-                .thenReturn(new BigDecimal("150.00"));
+        when(confirmado2.getValor()).thenReturn(new BigDecimal("200.00"));
 
-        when(pagamentoRepository.findByOrcamentoIdAndStatus(
-                orcamentoId,
-                StatusPagamento.CONFIRMADO
-        )).thenReturn(List.of(confirmado1, confirmado2));
+        when(pendente.getValor()).thenReturn(new BigDecimal("150.00"));
 
-        when(pagamentoRepository.findByOrcamentoIdAndStatus(
-                orcamentoId,
-                StatusPagamento.PENDENTE
-        )).thenReturn(List.of(pendente));
+        when(pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdAndStatus(orcamentoId, EMPRESA_ID, StatusPagamento.CONFIRMADO)).thenReturn(List.of(confirmado1, confirmado2));
 
-        PagamentoResumoResponseDTO resumo =
-                pagamentoService.obterResumo(orcamentoId);
+        when(pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdAndStatus(orcamentoId, EMPRESA_ID, StatusPagamento.PENDENTE)).thenReturn(List.of(pendente));
 
-        assertEquals(
-                new BigDecimal("1000.00"),
-                resumo.valorTotal()
-        );
+        PagamentoResumoResponseDTO resumo = pagamentoService.obterResumo(orcamentoId);
 
-        assertEquals(
-                new BigDecimal("500.00"),
-                resumo.totalPago()
-        );
+        assertEquals(new BigDecimal("1000.00"), resumo.valorTotal());
 
-        assertEquals(
-                new BigDecimal("150.00"),
-                resumo.totalPendente()
-        );
+        assertEquals(new BigDecimal("500.00"), resumo.totalPago());
 
-        assertEquals(
-                new BigDecimal("500.00"),
-                resumo.saldoRestante()
-        );
+        assertEquals(new BigDecimal("150.00"), resumo.totalPendente());
 
-        assertEquals(
-                new BigDecimal("350.00"),
-                resumo.valorDisponivelParaNovoPagamento()
-        );
+        assertEquals(new BigDecimal("500.00"), resumo.saldoRestante());
+
+        assertEquals(new BigDecimal("350.00"), resumo.valorDisponivelParaNovoPagamento());
     }
 
 
@@ -624,51 +473,58 @@ class PagamentoServiceTest {
 
         Pagamento pagamento = mock(Pagamento.class);
 
-        when(pagamentoRepository.findById(pagamentoId))
-                .thenReturn(Optional.of(pagamento));
+        prepararPagamentoEncontrado(pagamentoId, pagamento);
 
-        when(usuario.getId())
-                .thenReturn(5L);
+        when(usuario.getId()).thenReturn(5L);
 
-        when(usuario.getNome())
-                .thenReturn("Usuário Teste");
+        when(usuario.getNome()).thenReturn("Usuário Teste");
 
-        PagamentoHistorico historico =
-                new PagamentoHistorico(
-                        pagamento,
-                        StatusPagamento.PENDENTE,
-                        StatusPagamento.CONFIRMADO,
-                        usuario
-                );
+        PagamentoHistorico historico = new PagamentoHistorico(pagamento, StatusPagamento.PENDENTE, StatusPagamento.CONFIRMADO, usuario);
 
-        when(historicoRepository
-                .findByPagamentoIdOrderByDataAlteracaoAsc(pagamentoId))
-                .thenReturn(List.of(historico));
+        when(historicoRepository.findByPagamentoIdOrderByDataAlteracaoAsc(pagamentoId)).thenReturn(List.of(historico));
 
-        List<PagamentoHistoricoResponseDTO> resultado =
-                pagamentoService.listarHistorico(pagamentoId);
+        List<PagamentoHistoricoResponseDTO> resultado = pagamentoService.listarHistorico(pagamentoId);
 
         assertEquals(1, resultado.size());
 
-        PagamentoHistoricoResponseDTO response =
-                resultado.get(0);
+        PagamentoHistoricoResponseDTO response = resultado.get(0);
 
-        assertEquals(
-                StatusPagamento.PENDENTE,
-                response.statusAnterior()
-        );
+        assertEquals(StatusPagamento.PENDENTE, response.statusAnterior());
 
-        assertEquals(
-                StatusPagamento.CONFIRMADO,
-                response.statusNovo()
-        );
+        assertEquals(StatusPagamento.CONFIRMADO, response.statusNovo());
 
         assertEquals(5L, response.usuarioId());
+
         assertEquals("Usuário Teste", response.usuarioNome());
 
-        verify(pagamentoRepository).findById(pagamentoId);
+        verify(pagamentoRepository).findByIdAndOrcamento_Empresa_Id(pagamentoId, EMPRESA_ID);
 
-        verify(historicoRepository)
-                .findByPagamentoIdOrderByDataAlteracaoAsc(pagamentoId);
+        verify(historicoRepository).findByPagamentoIdOrderByDataAlteracaoAsc(pagamentoId);
+    }
+
+
+    /*
+     * Helpers
+     */
+
+    private void prepararEmpresaAtual() {
+
+        when(usuarioAutenticadoService.obterEmpresaAtual()).thenReturn(empresa);
+
+        when(empresa.getId()).thenReturn(EMPRESA_ID);
+    }
+
+    private void prepararOrcamentoEncontrado(Long orcamentoId) {
+
+        prepararEmpresaAtual();
+
+        when(orcamentoRepository.findByIdAndEmpresa_Id(orcamentoId, EMPRESA_ID)).thenReturn(Optional.of(orcamento));
+    }
+
+    private void prepararPagamentoEncontrado(Long pagamentoId, Pagamento pagamento) {
+
+        prepararEmpresaAtual();
+
+        when(pagamentoRepository.findByIdAndOrcamento_Empresa_Id(pagamentoId, EMPRESA_ID)).thenReturn(Optional.of(pagamento));
     }
 }
