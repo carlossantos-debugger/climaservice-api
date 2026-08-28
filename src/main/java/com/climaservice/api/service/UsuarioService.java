@@ -7,6 +7,7 @@ import com.climaservice.api.entity.Usuario;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.UsuarioRepository;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +20,9 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
-    UsuarioAutenticadoService usuarioAutenticadoService;
+    private final UsuarioAutenticadoService usuarioAutenticadoService;
 
     public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, UsuarioAutenticadoService usuarioAutenticadoService) {
-
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.usuarioAutenticadoService = usuarioAutenticadoService;
@@ -37,6 +37,10 @@ public class UsuarioService {
 
         String senhaHash = passwordEncoder.encode(dto.senha());
 
+        /*
+         * A empresa nunca vem do DTO.
+         * Ela é obtida pelo usuário autenticado.
+         */
         Empresa empresa = usuarioAutenticadoService.obterEmpresaAtual();
 
         Usuario usuario = new Usuario(dto.nome().trim(), emailNormalizado, senhaHash, dto.role(), empresa);
@@ -62,12 +66,9 @@ public class UsuarioService {
     @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> listarTodos() {
 
-        return usuarioRepository.findAll().stream().map(this::converterParaResponse).toList();
-    }
+        Long empresaId = obterEmpresaIdAtual();
 
-    private Usuario buscarEntidadePorId(Long id) {
-
-        return usuarioRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Usuário com ID " + id + " não encontrado"));
+        return usuarioRepository.findByEmpresa_IdOrderByNomeAsc(empresaId).stream().map(this::converterParaResponse).toList();
     }
 
     @Transactional(readOnly = true)
@@ -100,6 +101,18 @@ public class UsuarioService {
         Usuario usuarioAtualizado = usuarioRepository.save(usuario);
 
         return converterParaResponse(usuarioAtualizado);
+    }
+
+    private Usuario buscarEntidadePorId(Long id) {
+
+        Long empresaId = obterEmpresaIdAtual();
+
+        return usuarioRepository.findByIdAndEmpresa_Id(id, empresaId).orElseThrow(() -> new ResourceNotFoundException("Usuário com ID " + id + " não encontrado"));
+    }
+
+    private Long obterEmpresaIdAtual() {
+
+        return usuarioAutenticadoService.obterEmpresaAtual().getId();
     }
 
     private UsuarioResponseDTO converterParaResponse(Usuario usuario) {
