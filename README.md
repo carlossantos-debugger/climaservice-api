@@ -52,6 +52,7 @@ Atualmente, a API possui os seguintes módulos:
 - Equipamentos
 - Ordens de Serviço
 - Histórico de Ordens de Serviço
+- Agenda de Atendimentos
 - Catálogo de Serviços
 - Orçamentos
 - Itens de Orçamento
@@ -284,6 +285,88 @@ Cada registro armazena:
 - Usuário responsável pela alteração
 
 O histórico funciona como trilha de auditoria das transições de status e permite identificar quem realizou cada alteração relevante.
+
+---
+
+# Agenda de Atendimentos
+
+Cada Ordem de Serviço pode ter um ou mais agendamentos, vinculando um técnico a uma janela de data/hora.
+
+```text
+OrdemServico
+   ↓
+Agendamento
+   ├── Técnico responsável
+   ├── Data/hora de início e fim
+   └── Status
+```
+
+### Dados principais
+
+- ID
+- Ordem de Serviço
+- Técnico
+- Data/hora de início
+- Data/hora de fim
+- Status
+- Observação
+- Data de criação
+
+### Status
+
+```text
+AGENDADO
+CONFIRMADO
+EM_ATENDIMENTO
+CONCLUIDO
+CANCELADO
+```
+
+### Fluxo de status
+
+```text
+AGENDADO
+   ├──→ CONFIRMADO
+   └──→ CANCELADO
+
+CONFIRMADO
+   ├──→ EM_ATENDIMENTO
+   └──→ CANCELADO
+
+EM_ATENDIMENTO
+   ├──→ CONCLUIDO
+   └──→ CANCELADO
+
+CONCLUIDO
+   └── estado final
+
+CANCELADO
+   └── estado final
+```
+
+### Regras de negócio
+
+- A ordem de serviço informada precisa pertencer à empresa autenticada.
+- Ordens de serviço `CANCELADA` ou `CONCLUIDA` não podem receber novos agendamentos.
+- O técnico informado precisa pertencer à empresa autenticada, possuir o perfil `TECNICO` e estar ativo.
+- A data/hora de fim precisa ser posterior à data/hora de início.
+- Não é permitida sobreposição de horário entre agendamentos ativos (`AGENDADO`, `CONFIRMADO`, `EM_ATENDIMENTO`) do mesmo técnico.
+- Todo novo agendamento começa como `AGENDADO`.
+- Agendamentos `CONCLUIDO` ou `CANCELADO` são estados finais e não podem ser reagendados nem mudar de status.
+- Cada alteração de status é registrada em um histórico com o usuário responsável.
+
+### Endpoints
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| POST | `/agendamentos` | Criar agendamento (`ADMIN`, `ATENDENTE`) |
+| GET | `/agendamentos` | Listar agendamentos da empresa, com filtros opcionais (`dataInicial`, `dataFinal`, `tecnicoId`, `status`) |
+| GET | `/agendamentos/{id}` | Buscar agendamento por ID |
+| PATCH | `/agendamentos/{id}/status` | Alterar status (`ADMIN`, `TECNICO`) |
+| PATCH | `/agendamentos/{id}/reagendar` | Alterar data/hora do agendamento (`ADMIN`, `ATENDENTE`) |
+| GET | `/agendamentos/{id}/historico` | Consultar histórico de status |
+| GET | `/tecnicos/{tecnicoId}/agendamentos` | Agenda de um técnico |
+| GET | `/ordens-servico/{ordemServicoId}/agendamentos` | Agendamentos de uma ordem de serviço |
 
 ---
 
@@ -788,6 +871,9 @@ O gerenciamento de usuários é restrito ao perfil `ADMIN`.
 | Gerenciar orçamentos | ✅ | ✅ | ❌ |
 | Consultar pagamentos | ✅ | ✅ | ✅ |
 | Registrar/confirmar/cancelar pagamentos | ✅ | ✅ | ❌ |
+| Consultar agendamentos | ✅ | ✅ | ✅ |
+| Criar/reagendar agendamentos | ✅ | ✅ | ❌ |
+| Alterar status do agendamento | ✅ | ❌ | ✅ |
 
 As autorizações específicas são aplicadas com `@PreAuthorize`, enquanto a `SecurityConfig` define as regras globais de autenticação.
 
@@ -1053,6 +1139,8 @@ Empresa
 │         └── OrdemServico
 │              ├── OrdemServicoHistorico
 │              ├── OrdemServicoDiagnosticoHistorico
+│              ├── Agendamento
+│              │    └── AgendamentoHistorico
 │              └── Orcamento
 │                   ├── OrcamentoHistorico
 │                   ├── OrcamentoItem
@@ -1295,11 +1383,12 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Isolamento de pagamentos através de Orçamento → Empresa
 - [x] Onboarding público de empresas (`POST /auth/register-company`)
 - [x] Consulta e atualização dos dados da própria empresa (`GET`/`PATCH /empresa/me`)
+- [x] Agenda de atendimentos, com técnico, workflow de status e histórico
+- [x] Bloqueio de sobreposição de horário por técnico
 
 ## Próximas etapas
 
 - [ ] Revisão final do isolamento multi-tenant no gerenciamento de usuários
-- [ ] Agenda de atendimentos
 - [ ] Manutenção preventiva
 - [ ] OpenAPI / Swagger
 - [ ] Docker
