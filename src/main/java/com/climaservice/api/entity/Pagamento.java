@@ -44,13 +44,13 @@ public class Pagamento {
     }
 
     public Pagamento(Orcamento orcamento, BigDecimal valor, FormaPagamento formaPagamento, String observacao) {
-
         this.orcamento = orcamento;
         this.valor = valor;
         this.formaPagamento = formaPagamento;
         this.observacao = observacao;
 
         this.status = StatusPagamento.PENDENTE;
+
         this.dataCriacao = LocalDateTime.now();
     }
 
