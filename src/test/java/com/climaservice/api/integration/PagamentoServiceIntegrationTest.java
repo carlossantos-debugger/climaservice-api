@@ -2,11 +2,13 @@ package com.climaservice.api.integration;
 
 import com.climaservice.api.dto.PagamentoRequestDTO;
 import com.climaservice.api.dto.PagamentoResponseDTO;
-import com.climaservice.api.entity.*;
+import com.climaservice.api.entity.FormaPagamento;
+import com.climaservice.api.entity.Pagamento;
+import com.climaservice.api.entity.PagamentoHistorico;
+import com.climaservice.api.entity.StatusPagamento;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.repository.PagamentoHistoricoRepository;
 import com.climaservice.api.repository.PagamentoRepository;
-import org.springframework.boot.test.context.SpringBootTest;
 import com.climaservice.api.service.PagamentoService;
 
 import org.junit.jupiter.api.AfterEach;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,6 +31,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class PagamentoServiceIntegrationTest extends AbstractIntegrationTest {
+
+    private static final Long EMPRESA_ID = 8001L;
+    private static final Long ORCAMENTO_ID = 4001L;
 
     @Autowired
     private PagamentoService pagamentoService;
@@ -121,77 +127,77 @@ class PagamentoServiceIntegrationTest extends AbstractIntegrationTest {
                 """);
 
         jdbcTemplate.update("""
-        INSERT INTO equipamento (
-            id,
-            capacidade_btu,
-            local_instalacao,
-            marca,
-            modelo,
-            numero_serie,
-            cliente_id,
-            status,
-            empresa_id
-        )
-        VALUES (
-            2001,
-            12000,
-            'Sala',
-            'LG',
-            'Dual Inverter',
-            'SERIE-001',
-            1001,
-            'ATIVO',
-            8001
-        )
-        """);
+                INSERT INTO equipamento (
+                    id,
+                    capacidade_btu,
+                    local_instalacao,
+                    marca,
+                    modelo,
+                    numero_serie,
+                    cliente_id,
+                    status,
+                    empresa_id
+                )
+                VALUES (
+                    2001,
+                    12000,
+                    'Sala',
+                    'LG',
+                    'Dual Inverter',
+                    'SERIE-001',
+                    1001,
+                    'ATIVO',
+                    8001
+                )
+                """);
 
         jdbcTemplate.update("""
-        INSERT INTO ordem_servico (
-            id,
-            data_abertura,
-            descricao_problema,
-            diagnostico,
-            status,
-            cliente_id,
-            equipamento_id,
-            empresa_id
-        )
-        VALUES (
-            3001,
-            CURRENT_TIMESTAMP,
-            'Equipamento não está resfriando',
-            NULL,
-            'ABERTA',
-            1001,
-            2001,
-            8001
-        )
-        """);
+                INSERT INTO ordem_servico (
+                    id,
+                    data_abertura,
+                    descricao_problema,
+                    diagnostico,
+                    status,
+                    cliente_id,
+                    equipamento_id,
+                    empresa_id
+                )
+                VALUES (
+                    3001,
+                    CURRENT_TIMESTAMP,
+                    'Equipamento não está resfriando',
+                    NULL,
+                    'ABERTA',
+                    1001,
+                    2001,
+                    8001
+                )
+                """);
 
         jdbcTemplate.update("""
-        INSERT INTO orcamento (
-            id,
-            data_criacao,
-            data_envio,
-            data_resposta,
-            observacao,
-            status,
-            valor_total,
-            ordem_servico_id,
-            empresa_id
-        )
-        VALUES (
-            4001,
-            CURRENT_TIMESTAMP,
-            NULL,
-            NULL,
-            'Orçamento de teste',
-            'APROVADO',
-            1000.00,
-            3001,
-            8001
-        )
-        """);
+                INSERT INTO orcamento (
+                    id,
+                    data_criacao,
+                    data_envio,
+                    data_resposta,
+                    observacao,
+                    status,
+                    valor_total,
+                    ordem_servico_id,
+                    empresa_id
+                )
+                VALUES (
+                    4001,
+                    CURRENT_TIMESTAMP,
+                    NULL,
+                    NULL,
+                    'Orçamento de teste',
+                    'APROVADO',
+                    1000.00,
+                    3001,
+                    8001
+                )
+                """);
 
         autenticarUsuario();
     }
@@ -219,7 +225,7 @@ class PagamentoServiceIntegrationTest extends AbstractIntegrationTest {
         PagamentoRequestDTO dto = new PagamentoRequestDTO(new BigDecimal("250.00"), FormaPagamento.PIX, "Pagamento integração");
 
         // Act - criação
-        PagamentoResponseDTO criado = pagamentoService.criar(4001L, dto);
+        PagamentoResponseDTO criado = pagamentoService.criar(ORCAMENTO_ID, dto);
 
         // Assert - criação
         assertNotNull(criado);
@@ -229,7 +235,7 @@ class PagamentoServiceIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals(0, new BigDecimal("250.00").compareTo(criado.valor()));
 
-        Pagamento pagamentoPersistido = pagamentoRepository.findById(criado.id()).orElseThrow();
+        Pagamento pagamentoPersistido = pagamentoRepository.findByIdAndOrcamento_Empresa_Id(criado.id(), EMPRESA_ID).orElseThrow();
 
         assertEquals(StatusPagamento.PENDENTE, pagamentoPersistido.getStatus());
 
@@ -253,7 +259,7 @@ class PagamentoServiceIntegrationTest extends AbstractIntegrationTest {
 
         assertNotNull(confirmado.dataConfirmacao());
 
-        Pagamento pagamentoConfirmado = pagamentoRepository.findById(criado.id()).orElseThrow();
+        Pagamento pagamentoConfirmado = pagamentoRepository.findByIdAndOrcamento_Empresa_Id(criado.id(), EMPRESA_ID).orElseThrow();
 
         assertEquals(StatusPagamento.CONFIRMADO, pagamentoConfirmado.getStatus());
 
@@ -278,16 +284,16 @@ class PagamentoServiceIntegrationTest extends AbstractIntegrationTest {
         // Arrange
         PagamentoRequestDTO primeiroPagamento = new PagamentoRequestDTO(new BigDecimal("900.00"), FormaPagamento.PIX, "Pagamento inicial");
 
-        pagamentoService.criar(4001L, primeiroPagamento);
+        pagamentoService.criar(ORCAMENTO_ID, primeiroPagamento);
 
         PagamentoRequestDTO pagamentoAcimaDoSaldo = new PagamentoRequestDTO(new BigDecimal("150.00"), FormaPagamento.PIX, "Pagamento inválido");
 
         // Act + Assert
-        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> pagamentoService.criar(4001L, pagamentoAcimaDoSaldo));
+        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> pagamentoService.criar(ORCAMENTO_ID, pagamentoAcimaDoSaldo));
 
         assertEquals("O valor do pagamento ultrapassa o saldo disponível de 100.00", exception.getMessage());
 
-        List<Pagamento> pagamentos = pagamentoRepository.findByOrcamentoIdOrderByDataCriacaoAsc(4001L);
+        List<Pagamento> pagamentos = pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdOrderByDataCriacaoAsc(ORCAMENTO_ID, EMPRESA_ID);
 
         assertEquals(1, pagamentos.size());
 

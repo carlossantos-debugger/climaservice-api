@@ -1,17 +1,23 @@
 package com.climaservice.api.service;
 
+import com.climaservice.api.dto.PagamentoHistoricoResponseDTO;
 import com.climaservice.api.dto.PagamentoRequestDTO;
 import com.climaservice.api.dto.PagamentoResponseDTO;
 import com.climaservice.api.dto.PagamentoResumoResponseDTO;
-import com.climaservice.api.entity.*;
+import com.climaservice.api.entity.Orcamento;
+import com.climaservice.api.entity.Pagamento;
+import com.climaservice.api.entity.PagamentoHistorico;
+import com.climaservice.api.entity.StatusOrcamento;
+import com.climaservice.api.entity.StatusPagamento;
+import com.climaservice.api.entity.Usuario;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.OrcamentoRepository;
 import com.climaservice.api.repository.PagamentoHistoricoRepository;
 import com.climaservice.api.repository.PagamentoRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.climaservice.api.dto.PagamentoHistoricoResponseDTO;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -26,7 +32,6 @@ public class PagamentoService {
     private final UsuarioAutenticadoService usuarioAutenticadoService;
 
     public PagamentoService(PagamentoRepository pagamentoRepository, OrcamentoRepository orcamentoRepository, PagamentoHistoricoRepository historicoRepository, UsuarioAutenticadoService usuarioAutenticadoService) {
-
         this.pagamentoRepository = pagamentoRepository;
         this.orcamentoRepository = orcamentoRepository;
         this.historicoRepository = historicoRepository;
@@ -53,32 +58,38 @@ public class PagamentoService {
 
     private Orcamento buscarOrcamentoPorId(Long id) {
 
-        return orcamentoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Orçamento com ID " + id + " não encontrado"));
+        Long empresaId = obterEmpresaIdAtual();
+
+        return orcamentoRepository.findByIdAndEmpresa_Id(id, empresaId).orElseThrow(() -> new ResourceNotFoundException("Orçamento com ID " + id + " não encontrado"));
     }
 
     private void validarOrcamentoAprovado(Orcamento orcamento) {
 
         if (orcamento.getStatus() != StatusOrcamento.APROVADO) {
+
             throw new BusinessRuleException("Somente orçamentos aprovados podem receber pagamentos");
         }
     }
 
-    private BigDecimal calcularTotalPorStatus(Long orcamentoId, StatusPagamento status) {
+    private BigDecimal calcularTotalPorStatus(Long orcamentoId, Long empresaId, StatusPagamento status) {
 
-        return pagamentoRepository.findByOrcamentoIdAndStatus(orcamentoId, status).stream().map(Pagamento::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdAndStatus(orcamentoId, empresaId, status).stream().map(Pagamento::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private void validarValorDisponivel(Orcamento orcamento, BigDecimal novoValor) {
 
-        BigDecimal totalConfirmado = calcularTotalPorStatus(orcamento.getId(), StatusPagamento.CONFIRMADO);
+        Long empresaId = orcamento.getEmpresa().getId();
 
-        BigDecimal totalPendente = calcularTotalPorStatus(orcamento.getId(), StatusPagamento.PENDENTE);
+        BigDecimal totalConfirmado = calcularTotalPorStatus(orcamento.getId(), empresaId, StatusPagamento.CONFIRMADO);
+
+        BigDecimal totalPendente = calcularTotalPorStatus(orcamento.getId(), empresaId, StatusPagamento.PENDENTE);
 
         BigDecimal valorComprometido = totalConfirmado.add(totalPendente);
 
         BigDecimal valorDisponivel = orcamento.getValorTotal().subtract(valorComprometido);
 
         if (novoValor.compareTo(valorDisponivel) > 0) {
+
             throw new BusinessRuleException("O valor do pagamento ultrapassa o saldo disponível de " + valorDisponivel);
         }
     }
@@ -86,14 +97,18 @@ public class PagamentoService {
     @Transactional(readOnly = true)
     public List<PagamentoResponseDTO> listarPorOrcamento(Long orcamentoId) {
 
-        buscarOrcamentoPorId(orcamentoId);
+        Orcamento orcamento = buscarOrcamentoPorId(orcamentoId);
 
-        return pagamentoRepository.findByOrcamentoIdOrderByDataCriacaoAsc(orcamentoId).stream().map(this::converterParaResponse).toList();
+        Long empresaId = orcamento.getEmpresa().getId();
+
+        return pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdOrderByDataCriacaoAsc(orcamentoId, empresaId).stream().map(this::converterParaResponse).toList();
     }
 
     private Pagamento buscarPagamentoPorId(Long id) {
 
-        return pagamentoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Pagamento com ID " + id + " não encontrado"));
+        Long empresaId = obterEmpresaIdAtual();
+
+        return pagamentoRepository.findByIdAndOrcamento_Empresa_Id(id, empresaId).orElseThrow(() -> new ResourceNotFoundException("Pagamento com ID " + id + " não encontrado"));
     }
 
     @Transactional(readOnly = true)
@@ -145,6 +160,7 @@ public class PagamentoService {
     private void validarPagamentoPendente(Pagamento pagamento) {
 
         if (pagamento.getStatus() != StatusPagamento.PENDENTE) {
+
             throw new BusinessRuleException("Somente pagamentos pendentes podem ser alterados");
         }
     }
@@ -154,9 +170,11 @@ public class PagamentoService {
 
         Orcamento orcamento = buscarOrcamentoPorId(orcamentoId);
 
-        BigDecimal totalPago = calcularTotalPorStatus(orcamentoId, StatusPagamento.CONFIRMADO);
+        Long empresaId = orcamento.getEmpresa().getId();
 
-        BigDecimal totalPendente = calcularTotalPorStatus(orcamentoId, StatusPagamento.PENDENTE);
+        BigDecimal totalPago = calcularTotalPorStatus(orcamentoId, empresaId, StatusPagamento.CONFIRMADO);
+
+        BigDecimal totalPendente = calcularTotalPorStatus(orcamentoId, empresaId, StatusPagamento.PENDENTE);
 
         BigDecimal saldoRestante = orcamento.getValorTotal().subtract(totalPago);
 
@@ -189,6 +207,11 @@ public class PagamentoService {
                 historico.getUsuario() != null ? historico.getUsuario().getId() : null,
 
                 historico.getUsuario() != null ? historico.getUsuario().getNome() : null);
+    }
+
+    private Long obterEmpresaIdAtual() {
+
+        return usuarioAutenticadoService.obterEmpresaAtual().getId();
     }
 
     private PagamentoResponseDTO converterParaResponse(Pagamento pagamento) {
