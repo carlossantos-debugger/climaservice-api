@@ -32,6 +32,8 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
 
+                        .requestMatchers(HttpMethod.POST, "/auth/register-company").permitAll()
+
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
 
                         .anyRequest().authenticated()).exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
