@@ -36,10 +36,14 @@ public class Orcamento {
     @Column(length = 1000)
     private String observacao;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
+
     public Orcamento() {
     }
 
-    public Orcamento(OrdemServico ordemServico, String observacao) {
+    public Orcamento(OrdemServico ordemServico, String observacao, Empresa empresa) {
 
         this.ordemServico = ordemServico;
         this.observacao = observacao;
@@ -47,6 +51,7 @@ public class Orcamento {
         this.status = StatusOrcamento.RASCUNHO;
         this.valorTotal = BigDecimal.ZERO;
         this.dataCriacao = LocalDateTime.now();
+        this.empresa = empresa;
     }
 
     public Long getId() {
@@ -103,5 +108,9 @@ public class Orcamento {
 
     public void setObservacao(String observacao) {
         this.observacao = observacao;
+    }
+
+    public Empresa getEmpresa() {
+        return empresa;
     }
 }
