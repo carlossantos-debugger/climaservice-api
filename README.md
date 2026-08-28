@@ -4,7 +4,7 @@ API REST para gerenciamento de serviços de climatização e manutenção de ar-
 
 O **ClimaService** está sendo desenvolvido como um projeto SaaS voltado para empresas e profissionais que trabalham com instalação, manutenção preventiva e manutenção corretiva de equipamentos de climatização.
 
-O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot, Angular e PostgreSQL**, aplicando conceitos e práticas utilizadas no desenvolvimento de sistemas reais, como arquitetura em camadas, regras de negócio, validações, relacionamentos entre entidades, tratamento global de erros, segurança com JWT, autorização por perfis e workflows de status.
+O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot, Angular e PostgreSQL**, aplicando conceitos e práticas utilizadas no desenvolvimento de sistemas reais, como arquitetura em camadas, regras de negócio, validações, relacionamentos entre entidades, tratamento global de erros, segurança com JWT, autorização por perfis, workflows de status, versionamento de banco com Flyway, testes automatizados e isolamento multi-tenant.
 
 ---
 
@@ -25,13 +25,17 @@ O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot,
 - Spring Security
 - JWT
 - BCrypt
+- Flyway
+
+### Testes
+
+- JUnit 5
+- Mockito
+- Testcontainers
+- PostgreSQL real em container para testes de integração
 
 ### Planejadas
 
-- Flyway
-- JUnit
-- Mockito
-- Testcontainers
 - OpenAPI / Swagger
 - Docker
 - Docker Compose
@@ -55,8 +59,11 @@ Atualmente, a API possui os seguintes módulos:
 - Pagamentos
 - Usuários
 - Autenticação e Autorização
+- Empresas e contexto de tenant
+- Migrações versionadas com Flyway
+- Testes unitários e de integração
 
-Além dos CRUDs, o sistema já possui regras de negócio relacionadas ao ciclo de vida das ordens de serviço, orçamentos e pagamentos, além de autenticação com JWT e controle de acesso baseado em perfis.
+Além dos CRUDs, o sistema já possui regras de negócio relacionadas ao ciclo de vida das ordens de serviço, orçamentos e pagamentos, autenticação com JWT, controle de acesso baseado em perfis, auditoria de alterações e isolamento de dados por empresa nos principais módulos de negócio.
 
 ---
 
@@ -274,8 +281,9 @@ Cada registro armazena:
 - Status anterior
 - Novo status
 - Data da alteração
+- Usuário responsável pela alteração
 
-Esse histórico permitirá futuramente adicionar auditoria por usuário.
+O histórico funciona como trilha de auditoria das transições de status e permite identificar quem realizou cada alteração relevante.
 
 ---
 
@@ -741,6 +749,63 @@ As autorizações específicas são aplicadas com `@PreAuthorize`, enquanto a `S
 
 ---
 
+# Multi-tenancy
+
+O ClimaService utiliza uma estratégia **shared database / shared schema**, em que diferentes empresas utilizam a mesma aplicação e o mesmo schema PostgreSQL, mas os dados são isolados pelo tenant.
+
+O tenant é representado pela entidade `Empresa` e é obtido a partir do usuário autenticado. O cliente da API não envia `empresaId` nos DTOs para escolher o tenant da operação.
+
+```text
+Usuário autenticado
+        ↓
+      Empresa
+        ↓
+   dados do tenant
+```
+
+O isolamento por empresa já é aplicado aos principais módulos de negócio:
+
+- Clientes
+- Equipamentos
+- Ordens de Serviço
+- Serviços
+- Produtos e Peças
+- Orçamentos
+- Itens de Orçamento
+- Pagamentos
+- Históricos associados a esses recursos
+
+As consultas sensíveis utilizam métodos de repository filtrados por empresa. Dessa forma, um recurso pertencente a outro tenant é tratado como inexistente para o usuário atual.
+
+Exemplo:
+
+```text
+Empresa A                       Empresa B
+├── Cliente A                   ├── Cliente B
+├── Equipamento A               ├── Equipamento B
+├── OS A                        ├── OS B
+├── Orçamento A                 ├── Orçamento B
+└── Pagamento A                 └── Pagamento B
+
+Usuário da Empresa A
+        ↓
+não acessa recursos da Empresa B
+```
+
+No módulo de pagamentos, o tenant é validado através do relacionamento:
+
+```text
+Pagamento
+   ↓
+Orçamento
+   ↓
+Empresa
+```
+
+Os usuários já possuem vínculo com `Empresa`. A revisão final do isolamento das operações administrativas de `UsuarioService` é a próxima etapa de segurança antes de avançar para novas funcionalidades.
+
+---
+
 # Validações
 
 Os dados recebidos pela API são validados utilizando **Jakarta Bean Validation**.
@@ -860,7 +925,7 @@ JPA / Hibernate
 PostgreSQL
 ```
 
-O `JwtAuthFilter` identifica o usuário autenticado a partir do JWT. O `Service` manipula as entidades e aplica as regras de negócio antes de utilizar os repositories.
+O `JwtAuthFilter` identifica o usuário autenticado a partir do JWT. O `Service` manipula as entidades, aplica as regras de negócio e resolve o contexto da empresa autenticada antes de acessar recursos protegidos por tenant nos repositories.
 
 Na resposta:
 
@@ -934,24 +999,26 @@ com.climaservice.api
 As principais entidades são:
 
 ```text
-Cliente
+Empresa
 │
-└── Equipamento
-       │
-       └── OrdemServico
-              │
-              ├── OrdemServicoHistorico
-              │
-              └── Orcamento
-                     │
-                     ├── OrcamentoItem
-                     │     ├── Servico
-                     │     └── Produto
-                     │
-                     └── Pagamento
-
-Usuario
-└── RoleUsuario
+├── Usuario
+│    └── RoleUsuario
+│
+├── Cliente
+│    └── Equipamento
+│         └── OrdemServico
+│              ├── OrdemServicoHistorico
+│              ├── OrdemServicoDiagnosticoHistorico
+│              └── Orcamento
+│                   ├── OrcamentoHistorico
+│                   ├── OrcamentoItem
+│                   │    ├── Servico
+│                   │    └── Produto
+│                   └── Pagamento
+│                        └── PagamentoHistorico
+│
+├── Servico
+└── Produto
 ```
 
 Principais relacionamentos:
@@ -1021,9 +1088,20 @@ JWT_SECRET=sua_chave_base64
 
 > Não armazene credenciais reais diretamente no repositório.
 
-Durante o desenvolvimento inicial, o Hibernate realiza a atualização do schema.
+O schema do banco é versionado com **Flyway**. As alterações estruturais são aplicadas através de migrations SQL localizadas em:
 
-A migração do banco para **Flyway** está planejada para uma etapa futura.
+```text
+src/main/resources/db/migration
+```
+
+O Hibernate é utilizado com validação do schema, evitando alterações automáticas da estrutura em runtime:
+
+```properties
+spring.jpa.hibernate.ddl-auto=validate
+spring.flyway.enabled=true
+```
+
+As migrations já cobrem a criação inicial do schema e a evolução do modelo multi-tenant, incluindo os vínculos de `Empresa` com usuários, clientes, equipamentos, ordens de serviço, serviços, produtos e orçamentos.
 
 ---
 
@@ -1108,6 +1186,14 @@ Até o momento, o projeto utiliza conceitos como:
 - Filtro JWT por requisição
 - Controle de acesso baseado em roles
 - Autorização por método com `@PreAuthorize`
+- Multi-tenancy com shared database / shared schema
+- Isolamento de dados por empresa
+- Tenant derivado do usuário autenticado
+- Flyway para versionamento do schema
+- JUnit 5 para testes automatizados
+- Mockito para testes unitários
+- Testcontainers com PostgreSQL real em testes de integração
+- Auditoria de alterações associada ao usuário autenticado
 - Git com desenvolvimento por feature branches
 - Pull Requests para integração com a branch principal
 
@@ -1151,16 +1237,24 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Controle de usuários ativos/inativos
 - [x] Controle de permissões por role
 - [x] Autorização com `@PreAuthorize`
+- [x] Auditoria de alterações por usuário nos históricos
+- [x] Flyway
+- [x] Testes unitários com JUnit e Mockito
+- [x] Testes de integração com Testcontainers
+- [x] Entidade Empresa e contexto de tenant
+- [x] Multi-tenancy em clientes
+- [x] Multi-tenancy em equipamentos
+- [x] Multi-tenancy em ordens de serviço
+- [x] Multi-tenancy em serviços
+- [x] Multi-tenancy em produtos
+- [x] Multi-tenancy em orçamentos
+- [x] Isolamento de pagamentos através de Orçamento → Empresa
 
 ## Próximas etapas
 
-- [ ] Auditoria por usuário
-- [ ] Multi-tenancy
+- [ ] Revisão final do isolamento multi-tenant no gerenciamento de usuários
 - [ ] Agenda de atendimentos
 - [ ] Manutenção preventiva
-- [ ] Flyway
-- [ ] Testes unitários com JUnit e Mockito
-- [ ] Testes de integração com Testcontainers
 - [ ] OpenAPI / Swagger
 - [ ] Docker
 - [ ] Docker Compose
@@ -1218,7 +1312,7 @@ Aprovação / Rejeição
 Pagamento
 ```
 
-A API também possui uma camada de segurança completa para o estágio atual do projeto:
+A API também possui uma camada de segurança e isolamento de dados compatível com o estágio atual do projeto:
 
 ```text
 Login
@@ -1232,6 +1326,12 @@ JwtAuthFilter
 SecurityContext
   ↓
 Roles / @PreAuthorize
+  ↓
+Empresa do usuário autenticado
+  ↓
+Isolamento multi-tenant
 ```
 
-A próxima evolução planejada é adicionar **auditoria por usuário**, registrando quem executou alterações relevantes no sistema. Em seguida, o projeto poderá avançar para **multi-tenancy**, agenda de atendimentos, manutenção preventiva, testes automatizados e infraestrutura de entrega.
+O backend também utiliza **Flyway** para versionamento do banco e uma suíte de testes com **JUnit 5, Mockito e Testcontainers**, executando cenários de integração contra PostgreSQL real em container.
+
+A próxima etapa é concluir a revisão de isolamento do `UsuarioService`. Depois disso, o projeto poderá avançar para agenda de atendimentos, manutenção preventiva, OpenAPI/Swagger, Docker, CI/CD e frontend com Angular.
