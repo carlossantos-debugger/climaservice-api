@@ -29,6 +29,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class OrdemServicoServiceTest {
 
+    private static final Long EMPRESA_ID = 8001L;
+
     @Mock
     private OrdemServicoRepository ordemServicoRepository;
 
@@ -56,6 +58,9 @@ class OrdemServicoServiceTest {
     @Mock
     private Usuario usuario;
 
+    @Mock
+    private Empresa empresa;
+
     @InjectMocks
     private OrdemServicoService ordemServicoService;
 
@@ -67,20 +72,29 @@ class OrdemServicoServiceTest {
         OrdemServicoRequestDTO dto = mock(OrdemServicoRequestDTO.class);
 
         when(dto.clienteId()).thenReturn(1L);
+
         when(dto.equipamentoId()).thenReturn(2L);
+
         when(dto.descricaoProblema()).thenReturn("Ar-condicionado não está resfriando");
 
-        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        prepararEmpresaAtual();
 
-        when(equipamentoRepository.findById(2L)).thenReturn(Optional.of(equipamento));
+        when(clienteRepository.findByIdAndEmpresa_Id(1L, EMPRESA_ID)).thenReturn(Optional.of(cliente));
+
+        when(equipamentoRepository.findByIdAndEmpresa_Id(2L, EMPRESA_ID)).thenReturn(Optional.of(equipamento));
 
         when(cliente.getId()).thenReturn(1L);
+
         when(cliente.getNome()).thenReturn("Cliente Teste");
 
         when(equipamento.getId()).thenReturn(2L);
+
         when(equipamento.getCliente()).thenReturn(cliente);
+
         when(equipamento.getStatus()).thenReturn(StatusEquipamento.ATIVO);
+
         when(equipamento.getMarca()).thenReturn("LG");
+
         when(equipamento.getModelo()).thenReturn("Dual Inverter");
 
         when(usuarioAutenticadoService.obterUsuarioAtual()).thenReturn(usuario);
@@ -109,6 +123,8 @@ class OrdemServicoServiceTest {
 
         assertEquals(equipamento, ordemSalva.getEquipamento());
 
+        assertEquals(empresa, ordemSalva.getEmpresa());
+
         verify(historicoRepository).save(any(OrdemServicoHistorico.class));
     }
 
@@ -122,11 +138,14 @@ class OrdemServicoServiceTest {
         Cliente outroCliente = mock(Cliente.class);
 
         when(dto.clienteId()).thenReturn(1L);
+
         when(dto.equipamentoId()).thenReturn(2L);
 
-        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        prepararEmpresaAtual();
 
-        when(equipamentoRepository.findById(2L)).thenReturn(Optional.of(equipamento));
+        when(clienteRepository.findByIdAndEmpresa_Id(1L, EMPRESA_ID)).thenReturn(Optional.of(cliente));
+
+        when(equipamentoRepository.findByIdAndEmpresa_Id(2L, EMPRESA_ID)).thenReturn(Optional.of(equipamento));
 
         when(cliente.getId()).thenReturn(1L);
 
@@ -143,7 +162,9 @@ class OrdemServicoServiceTest {
 
         verify(historicoRepository, never()).save(any());
 
-        verifyNoInteractions(usuarioAutenticadoService);
+        verify(usuarioAutenticadoService).obterEmpresaAtual();
+
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -154,11 +175,14 @@ class OrdemServicoServiceTest {
         OrdemServicoRequestDTO dto = mock(OrdemServicoRequestDTO.class);
 
         when(dto.clienteId()).thenReturn(1L);
+
         when(dto.equipamentoId()).thenReturn(2L);
 
-        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        prepararEmpresaAtual();
 
-        when(equipamentoRepository.findById(2L)).thenReturn(Optional.of(equipamento));
+        when(clienteRepository.findByIdAndEmpresa_Id(1L, EMPRESA_ID)).thenReturn(Optional.of(cliente));
+
+        when(equipamentoRepository.findByIdAndEmpresa_Id(2L, EMPRESA_ID)).thenReturn(Optional.of(equipamento));
 
         when(cliente.getId()).thenReturn(1L);
 
@@ -174,6 +198,8 @@ class OrdemServicoServiceTest {
         verify(ordemServicoRepository, never()).save(any());
 
         verify(historicoRepository, never()).save(any());
+
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -182,7 +208,7 @@ class OrdemServicoServiceTest {
 
         OrdemServico ordem = criarOrdem(StatusOrdemServico.ABERTA);
 
-        prepararAtualizacaoStatus(10L, ordem, StatusOrdemServico.EM_ANDAMENTO);
+        prepararAtualizacaoStatus(10L, ordem);
 
         var response = ordemServicoService.atualizarStatus(10L, dtoStatus(StatusOrdemServico.EM_ANDAMENTO));
 
@@ -201,7 +227,7 @@ class OrdemServicoServiceTest {
 
         OrdemServico ordem = criarOrdem(StatusOrdemServico.ABERTA);
 
-        prepararAtualizacaoStatus(10L, ordem, StatusOrdemServico.CANCELADA);
+        prepararAtualizacaoStatus(10L, ordem);
 
         ordemServicoService.atualizarStatus(10L, dtoStatus(StatusOrdemServico.CANCELADA));
 
@@ -216,7 +242,7 @@ class OrdemServicoServiceTest {
 
         OrdemServico ordem = criarOrdem(StatusOrdemServico.ABERTA);
 
-        when(ordemServicoRepository.findById(10L)).thenReturn(Optional.of(ordem));
+        prepararOrdemEncontrada(10L, ordem);
 
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> ordemServicoService.atualizarStatus(10L, dtoStatus(StatusOrdemServico.CONCLUIDA)));
 
@@ -228,7 +254,7 @@ class OrdemServicoServiceTest {
 
         verify(historicoRepository, never()).save(any());
 
-        verifyNoInteractions(usuarioAutenticadoService);
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -237,7 +263,7 @@ class OrdemServicoServiceTest {
 
         OrdemServico ordem = criarOrdem(StatusOrdemServico.EM_ANDAMENTO);
 
-        prepararAtualizacaoStatus(10L, ordem, StatusOrdemServico.AGUARDANDO_CLIENTE);
+        prepararAtualizacaoStatus(10L, ordem);
 
         ordemServicoService.atualizarStatus(10L, dtoStatus(StatusOrdemServico.AGUARDANDO_CLIENTE));
 
@@ -252,7 +278,7 @@ class OrdemServicoServiceTest {
 
         OrdemServico ordem = criarOrdem(StatusOrdemServico.EM_ANDAMENTO);
 
-        prepararAtualizacaoStatus(10L, ordem, StatusOrdemServico.CONCLUIDA);
+        prepararAtualizacaoStatus(10L, ordem);
 
         var response = ordemServicoService.atualizarStatus(10L, dtoStatus(StatusOrdemServico.CONCLUIDA));
 
@@ -271,7 +297,7 @@ class OrdemServicoServiceTest {
 
         OrdemServico ordem = criarOrdem(StatusOrdemServico.AGUARDANDO_CLIENTE);
 
-        prepararAtualizacaoStatus(10L, ordem, StatusOrdemServico.EM_ANDAMENTO);
+        prepararAtualizacaoStatus(10L, ordem);
 
         ordemServicoService.atualizarStatus(10L, dtoStatus(StatusOrdemServico.EM_ANDAMENTO));
 
@@ -286,7 +312,7 @@ class OrdemServicoServiceTest {
 
         OrdemServico ordem = criarOrdem(StatusOrdemServico.CONCLUIDA);
 
-        when(ordemServicoRepository.findById(10L)).thenReturn(Optional.of(ordem));
+        prepararOrdemEncontrada(10L, ordem);
 
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> ordemServicoService.atualizarStatus(10L, dtoStatus(StatusOrdemServico.CANCELADA)));
 
@@ -295,6 +321,8 @@ class OrdemServicoServiceTest {
         verify(ordemServicoRepository, never()).save(any());
 
         verify(historicoRepository, never()).save(any());
+
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -303,7 +331,7 @@ class OrdemServicoServiceTest {
 
         OrdemServico ordem = criarOrdem(StatusOrdemServico.CANCELADA);
 
-        when(ordemServicoRepository.findById(10L)).thenReturn(Optional.of(ordem));
+        prepararOrdemEncontrada(10L, ordem);
 
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> ordemServicoService.atualizarStatus(10L, dtoStatus(StatusOrdemServico.EM_ANDAMENTO)));
 
@@ -312,6 +340,8 @@ class OrdemServicoServiceTest {
         verify(ordemServicoRepository, never()).save(any());
 
         verify(historicoRepository, never()).save(any());
+
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -327,7 +357,7 @@ class OrdemServicoServiceTest {
 
         when(dto.diagnostico()).thenReturn("Compressor com defeito");
 
-        when(ordemServicoRepository.findById(10L)).thenReturn(Optional.of(ordem));
+        prepararOrdemEncontrada(10L, ordem);
 
         when(ordemServicoRepository.save(ordem)).thenReturn(ordem);
 
@@ -360,7 +390,7 @@ class OrdemServicoServiceTest {
 
         OrdemServico ordem = criarOrdem(StatusOrdemServico.CONCLUIDA);
 
-        when(ordemServicoRepository.findById(10L)).thenReturn(Optional.of(ordem));
+        prepararOrdemEncontrada(10L, ordem);
 
         AtualizarDiagnosticoRequestDTO dto = mock(AtualizarDiagnosticoRequestDTO.class);
 
@@ -371,6 +401,8 @@ class OrdemServicoServiceTest {
         verify(ordemServicoRepository, never()).save(any());
 
         verify(diagnosticoHistoricoRepository, never()).save(any());
+
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -379,7 +411,7 @@ class OrdemServicoServiceTest {
 
         OrdemServico ordem = criarOrdem(StatusOrdemServico.CANCELADA);
 
-        when(ordemServicoRepository.findById(10L)).thenReturn(Optional.of(ordem));
+        prepararOrdemEncontrada(10L, ordem);
 
         AtualizarDiagnosticoRequestDTO dto = mock(AtualizarDiagnosticoRequestDTO.class);
 
@@ -390,6 +422,8 @@ class OrdemServicoServiceTest {
         verify(ordemServicoRepository, never()).save(any());
 
         verify(diagnosticoHistoricoRepository, never()).save(any());
+
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -397,7 +431,9 @@ class OrdemServicoServiceTest {
     void deveRetornarOptionalVazioQuandoOrdemServicoNaoExistir() {
 
         // Arrange
-        when(ordemServicoRepository.findById(999L)).thenReturn(Optional.empty());
+        prepararEmpresaAtual();
+
+        when(ordemServicoRepository.findByIdAndEmpresa_Id(999L, EMPRESA_ID)).thenReturn(Optional.empty());
 
         // Act
         var resultado = ordemServicoService.buscarPorId(999L);
@@ -405,7 +441,32 @@ class OrdemServicoServiceTest {
         // Assert
         assertTrue(resultado.isEmpty());
 
-        verify(ordemServicoRepository).findById(999L);
+        verify(ordemServicoRepository).findByIdAndEmpresa_Id(999L, EMPRESA_ID);
+    }
+
+
+    @Test
+    void deveLancarExcecaoAoAtualizarStatusDeOrdemInexistente() {
+
+        // Arrange
+        Long ordemId = 999L;
+
+        prepararEmpresaAtual();
+
+        when(ordemServicoRepository.findByIdAndEmpresa_Id(ordemId, EMPRESA_ID)).thenReturn(Optional.empty());
+
+        AtualizarStatusOrdemServicoRequestDTO dto = mock(AtualizarStatusOrdemServicoRequestDTO.class);
+
+        // Act + Assert
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> ordemServicoService.atualizarStatus(ordemId, dto));
+
+        assertEquals("Ordem de serviço com ID 999 não encontrada", exception.getMessage());
+
+        verify(ordemServicoRepository, never()).save(any());
+
+        verify(historicoRepository, never()).save(any());
+
+        verify(usuarioAutenticadoService, never()).obterUsuarioAtual();
     }
 
 
@@ -415,7 +476,7 @@ class OrdemServicoServiceTest {
 
     private OrdemServico criarOrdem(StatusOrdemServico status) {
 
-        OrdemServico ordem = new OrdemServico(cliente, equipamento, "Problema de teste");
+        OrdemServico ordem = new OrdemServico(cliente, equipamento, "Problema de teste", empresa);
 
         ordem.setStatus(status);
 
@@ -433,9 +494,25 @@ class OrdemServicoServiceTest {
     }
 
 
-    private void prepararAtualizacaoStatus(Long id, OrdemServico ordem, StatusOrdemServico novoStatus) {
+    private void prepararEmpresaAtual() {
 
-        when(ordemServicoRepository.findById(id)).thenReturn(Optional.of(ordem));
+        when(usuarioAutenticadoService.obterEmpresaAtual()).thenReturn(empresa);
+
+        when(empresa.getId()).thenReturn(EMPRESA_ID);
+    }
+
+
+    private void prepararOrdemEncontrada(Long id, OrdemServico ordem) {
+
+        prepararEmpresaAtual();
+
+        when(ordemServicoRepository.findByIdAndEmpresa_Id(id, EMPRESA_ID)).thenReturn(Optional.of(ordem));
+    }
+
+
+    private void prepararAtualizacaoStatus(Long id, OrdemServico ordem) {
+
+        prepararOrdemEncontrada(id, ordem);
 
         when(ordemServicoRepository.save(ordem)).thenReturn(ordem);
 
@@ -456,25 +533,5 @@ class OrdemServicoServiceTest {
         assertEquals(statusNovo, historico.getStatusNovo());
 
         assertEquals(usuario, historico.getUsuario());
-    }
-
-    @Test
-    void deveLancarExcecaoAoAtualizarStatusDeOrdemInexistente() {
-
-        // Arrange
-        Long ordemId = 999L;
-
-        when(ordemServicoRepository.findById(ordemId)).thenReturn(Optional.empty());
-
-        AtualizarStatusOrdemServicoRequestDTO dto = mock(AtualizarStatusOrdemServicoRequestDTO.class);
-
-        // Act + Assert
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> ordemServicoService.atualizarStatus(ordemId, dto));
-
-        assertEquals("Ordem de serviço com ID 999 não encontrada", exception.getMessage());
-
-        verify(ordemServicoRepository, never()).save(any());
-
-        verify(historicoRepository, never()).save(any());
     }
 }
