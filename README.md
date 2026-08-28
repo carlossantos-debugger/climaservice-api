@@ -689,6 +689,44 @@ senha_hash
 PostgreSQL
 ```
 
+### Onboarding de empresas
+
+Uma nova empresa entra na aplicação através de um cadastro público, que cria a `Empresa` e seu primeiro usuário `ADMIN` na mesma transação:
+
+```http
+POST /auth/register-company
+```
+
+```json
+{
+  "empresaNome": "ClimaService Instalações",
+  "empresaCpfCnpj": "12345678000199",
+  "adminNome": "Maria Souza",
+  "adminEmail": "maria@climaservice.com",
+  "adminSenha": "senhaSegura123"
+}
+```
+
+Regras:
+
+- Endpoint público (não exige autenticação).
+- A empresa é criada já ativa e o administrador já ativo.
+- A senha é armazenada com `BCryptPasswordEncoder`.
+- O e-mail do administrador é normalizado e precisa ser único em toda a aplicação.
+- O CPF/CNPJ da empresa é opcional, mas quando informado deve possuir 11 ou 14 dígitos e ser único entre empresas.
+- O cliente da API nunca informa `empresaId`: o tenant nasce junto com o cadastro.
+- Qualquer falha (e-mail ou CPF/CNPJ duplicado, validação) desfaz o cadastro por completo — empresa e usuário não ficam órfãos.
+- A resposta já inclui um JWT, permitindo que o frontend autentique o administrador imediatamente após o cadastro, sem precisar de um segundo login.
+
+A empresa autenticada também pode consultar e atualizar seus próprios dados:
+
+```http
+GET   /empresa/me
+PATCH /empresa/me
+```
+
+`GET /empresa/me` está disponível para qualquer perfil autenticado. `PATCH /empresa/me` é restrito ao perfil `ADMIN` e permite alterar nome e CPF/CNPJ da própria empresa, reaplicando a mesma validação de unicidade de CPF/CNPJ. Ambos os endpoints operam exclusivamente sobre a empresa do usuário autenticado — não é possível consultar ou alterar dados de outro tenant.
+
 ### Login e JWT
 
 O login é realizado por e-mail e senha:
@@ -716,6 +754,9 @@ Usuários podem ser inativados sem exclusão física. Usuários inativos não po
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/auth/login` | Autenticar usuário e gerar JWT |
+| POST | `/auth/register-company` | Cadastrar empresa e seu primeiro administrador (público) |
+| GET | `/empresa/me` | Consultar dados da empresa autenticada |
+| PATCH | `/empresa/me` | Atualizar dados da empresa autenticada (`ADMIN`) |
 | POST | `/usuarios` | Cadastrar usuário |
 | GET | `/usuarios` | Listar usuários |
 | GET | `/usuarios/{id}` | Buscar usuário |
@@ -728,6 +769,9 @@ O gerenciamento de usuários é restrito ao perfil `ADMIN`.
 
 | Operação | ADMIN | ATENDENTE | TECNICO |
 |---|:---:|:---:|:---:|
+| Cadastrar empresa (onboarding) | público | público | público |
+| Consultar dados da própria empresa | ✅ | ✅ | ✅ |
+| Atualizar dados da própria empresa | ✅ | ❌ | ❌ |
 | Gerenciar usuários | ✅ | ❌ | ❌ |
 | Consultar clientes | ✅ | ✅ | ✅ |
 | Cadastrar/alterar clientes | ✅ | ✅ | ❌ |
@@ -1249,6 +1293,8 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Multi-tenancy em produtos
 - [x] Multi-tenancy em orçamentos
 - [x] Isolamento de pagamentos através de Orçamento → Empresa
+- [x] Onboarding público de empresas (`POST /auth/register-company`)
+- [x] Consulta e atualização dos dados da própria empresa (`GET`/`PATCH /empresa/me`)
 
 ## Próximas etapas
 
