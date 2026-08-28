@@ -51,11 +51,28 @@ class PagamentoControllerSecurityIntegrationTest extends AbstractIntegrationTest
                     ordem_servico,
                     equipamento,
                     cliente,
-                    usuario
+                    usuario,
+                    empresa
                 RESTART IDENTITY CASCADE
                 """);
 
-        // Usuários
+        jdbcTemplate.update("""
+                INSERT INTO empresa (
+                    id,
+                    nome,
+                    cpf_cnpj,
+                    ativo,
+                    data_criacao
+                )
+                VALUES (
+                    8001,
+                    'ClimaService Teste',
+                    NULL,
+                    true,
+                    CURRENT_TIMESTAMP
+                )
+                """);
+
         jdbcTemplate.update("""
                 INSERT INTO usuario (
                     id,
@@ -64,7 +81,8 @@ class PagamentoControllerSecurityIntegrationTest extends AbstractIntegrationTest
                     email,
                     nome,
                     role,
-                    senha_hash
+                    senha_hash,
+                    empresa_id
                 )
                 VALUES
                     (
@@ -74,7 +92,8 @@ class PagamentoControllerSecurityIntegrationTest extends AbstractIntegrationTest
                         'admin@teste.com',
                         'Administrador Teste',
                         'ADMIN',
-                        'hash-teste'
+                        'hash-teste',
+                        8001
                     ),
                     (
                         9002,
@@ -83,7 +102,8 @@ class PagamentoControllerSecurityIntegrationTest extends AbstractIntegrationTest
                         'atendente@teste.com',
                         'Atendente Teste',
                         'ATENDENTE',
-                        'hash-teste'
+                        'hash-teste',
+                        8001
                     ),
                     (
                         9003,
@@ -92,97 +112,105 @@ class PagamentoControllerSecurityIntegrationTest extends AbstractIntegrationTest
                         'tecnico@teste.com',
                         'Técnico Teste',
                         'TECNICO',
-                        'hash-teste'
+                        'hash-teste',
+                        8001
                     )
                 """);
 
-        // Cliente
+// Cliente
         jdbcTemplate.update("""
                 INSERT INTO cliente (
                     id,
                     nome,
                     cpf_cnpj,
                     telefone,
-                    email
+                    email,
+                    empresa_id
                 )
                 VALUES (
                     1001,
                     'Cliente Teste',
                     '12345678901',
                     '47999999999',
-                    'cliente@teste.com'
+                    'cliente@teste.com',
+                    8001
                 )
                 """);
 
         // Equipamento
         jdbcTemplate.update("""
-                INSERT INTO equipamento (
-                    id,
-                    capacidade_btu,
-                    local_instalacao,
-                    marca,
-                    modelo,
-                    numero_serie,
-                    cliente_id,
-                    status
-                )
-                VALUES (
-                    2001,
-                    12000,
-                    'Sala',
-                    'LG',
-                    'Dual Inverter',
-                    'SERIE-001',
-                    1001,
-                    'ATIVO'
-                )
-                """);
+        INSERT INTO equipamento (
+            id,
+            capacidade_btu,
+            local_instalacao,
+            marca,
+            modelo,
+            numero_serie,
+            cliente_id,
+            status,
+            empresa_id
+        )
+        VALUES (
+            2001,
+            12000,
+            'Sala',
+            'LG',
+            'Dual Inverter',
+            'SERIE-001',
+            1001,
+            'ATIVO',
+            8001
+        )
+        """);
 
         // Ordem de Serviço
         jdbcTemplate.update("""
-                INSERT INTO ordem_servico (
-                    id,
-                    data_abertura,
-                    descricao_problema,
-                    diagnostico,
-                    status,
-                    cliente_id,
-                    equipamento_id
-                )
-                VALUES (
-                    3001,
-                    CURRENT_TIMESTAMP,
-                    'Equipamento não está resfriando',
-                    NULL,
-                    'ABERTA',
-                    1001,
-                    2001
-                )
-                """);
+        INSERT INTO ordem_servico (
+            id,
+            data_abertura,
+            descricao_problema,
+            diagnostico,
+            status,
+            cliente_id,
+            equipamento_id,
+            empresa_id
+        )
+        VALUES (
+            3001,
+            CURRENT_TIMESTAMP,
+            'Equipamento não está resfriando',
+            NULL,
+            'ABERTA',
+            1001,
+            2001,
+            8001
+        )
+        """);
 
-        // Orçamento aprovado
         jdbcTemplate.update("""
-                INSERT INTO orcamento (
-                    id,
-                    data_criacao,
-                    data_envio,
-                    data_resposta,
-                    observacao,
-                    status,
-                    valor_total,
-                    ordem_servico_id
-                )
-                VALUES (
-                    4001,
-                    CURRENT_TIMESTAMP,
-                    NULL,
-                    NULL,
-                    'Orçamento de teste',
-                    'APROVADO',
-                    1000.00,
-                    3001
-                )
-                """);
+        INSERT INTO orcamento (
+            id,
+            data_criacao,
+            data_envio,
+            data_resposta,
+            observacao,
+            status,
+            valor_total,
+            ordem_servico_id,
+            empresa_id
+        )
+        VALUES (
+            4001,
+            CURRENT_TIMESTAMP,
+            NULL,
+            NULL,
+            'Orçamento de teste',
+            'APROVADO',
+            1000.00,
+            3001,
+            8001
+        )
+        """);
     }
 
 
@@ -264,22 +292,15 @@ class PagamentoControllerSecurityIntegrationTest extends AbstractIntegrationTest
                 WHERE orcamento_id = 4001
                 """, String.class);
 
-        Long usuarioAuditoria =
-                jdbcTemplate.queryForObject(
-                        """
-                                SELECT ph.usuario_id
-                                FROM pagamento_historico ph
-                                JOIN pagamento p
-                                    ON p.id = ph.pagamento_id
-                                WHERE p.orcamento_id = 4001
-                                """,
-                        Long.class
-                );
+        Long usuarioAuditoria = jdbcTemplate.queryForObject("""
+                SELECT ph.usuario_id
+                FROM pagamento_historico ph
+                JOIN pagamento p
+                    ON p.id = ph.pagamento_id
+                WHERE p.orcamento_id = 4001
+                """, Long.class);
 
-        assertEquals(
-                9001L,
-                usuarioAuditoria
-        );
+        assertEquals(9001L, usuarioAuditoria);
 
         assertEquals("PENDENTE", statusPagamento);
     }

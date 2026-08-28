@@ -3,12 +3,12 @@ package com.climaservice.api.integration;
 import com.climaservice.api.entity.Pagamento;
 import com.climaservice.api.entity.StatusPagamento;
 import com.climaservice.api.repository.PagamentoRepository;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
@@ -17,8 +17,10 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
-class PagamentoRepositoryIntegrationTest
-        extends AbstractIntegrationTest {
+class PagamentoRepositoryIntegrationTest extends AbstractIntegrationTest {
+
+    private static final Long EMPRESA_ID = 8001L;
+    private static final Long ORCAMENTO_ID = 4001L;
 
     @Autowired
     private PagamentoRepository pagamentoRepository;
@@ -40,8 +42,27 @@ class PagamentoRepositoryIntegrationTest
                     ordem_servico_historico,
                     ordem_servico,
                     equipamento,
-                    cliente
+                    cliente,
+                    usuario,
+                    empresa
                 RESTART IDENTITY CASCADE
+                """);
+
+        jdbcTemplate.update("""
+                INSERT INTO empresa (
+                    id,
+                    nome,
+                    cpf_cnpj,
+                    ativo,
+                    data_criacao
+                )
+                VALUES (
+                    8001,
+                    'ClimaService Teste',
+                    NULL,
+                    true,
+                    CURRENT_TIMESTAMP
+                )
                 """);
 
         jdbcTemplate.update("""
@@ -50,14 +71,16 @@ class PagamentoRepositoryIntegrationTest
                     nome,
                     cpf_cnpj,
                     telefone,
-                    email
+                    email,
+                    empresa_id
                 )
                 VALUES (
                     1001,
                     'Cliente Teste',
                     '12345678901',
                     '47999999999',
-                    'cliente@teste.com'
+                    'cliente@teste.com',
+                    8001
                 )
                 """);
 
@@ -70,7 +93,8 @@ class PagamentoRepositoryIntegrationTest
                     modelo,
                     numero_serie,
                     cliente_id,
-                    status
+                    status,
+                    empresa_id
                 )
                 VALUES (
                     2001,
@@ -80,7 +104,8 @@ class PagamentoRepositoryIntegrationTest
                     'Dual Inverter',
                     'SERIE-001',
                     1001,
-                    'ATIVO'
+                    'ATIVO',
+                    8001
                 )
                 """);
 
@@ -92,7 +117,8 @@ class PagamentoRepositoryIntegrationTest
                     diagnostico,
                     status,
                     cliente_id,
-                    equipamento_id
+                    equipamento_id,
+                    empresa_id
                 )
                 VALUES (
                     3001,
@@ -101,7 +127,8 @@ class PagamentoRepositoryIntegrationTest
                     NULL,
                     'ABERTA',
                     1001,
-                    2001
+                    2001,
+                    8001
                 )
                 """);
 
@@ -114,17 +141,19 @@ class PagamentoRepositoryIntegrationTest
                     observacao,
                     status,
                     valor_total,
-                    ordem_servico_id
+                    ordem_servico_id,
+                    empresa_id
                 )
                 VALUES (
                     4001,
                     CURRENT_TIMESTAMP,
                     NULL,
                     NULL,
-                    'Orçamento teste',
+                    'Orçamento de teste',
                     'APROVADO',
                     1000.00,
-                    3001
+                    3001,
+                    8001
                 )
                 """);
 
@@ -182,7 +211,7 @@ class PagamentoRepositoryIntegrationTest
     @Test
     void deveBuscarPagamentosPendentesDoOrcamento() {
 
-        List<Pagamento> pagamentos = pagamentoRepository.findByOrcamentoIdAndStatus(4001L, StatusPagamento.PENDENTE);
+        List<Pagamento> pagamentos = pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdAndStatus(ORCAMENTO_ID, EMPRESA_ID, StatusPagamento.PENDENTE);
 
         assertEquals(1, pagamentos.size());
 
@@ -192,13 +221,13 @@ class PagamentoRepositoryIntegrationTest
 
         assertEquals(0, new BigDecimal("250.00").compareTo(pagamento.getValor()));
 
-        assertEquals(4001L, pagamento.getOrcamento().getId());
+        assertEquals(ORCAMENTO_ID, pagamento.getOrcamento().getId());
     }
 
     @Test
     void deveListarPagamentosDoOrcamentoEmOrdemDeCriacao() {
 
-        List<Pagamento> pagamentos = pagamentoRepository.findByOrcamentoIdOrderByDataCriacaoAsc(4001L);
+        List<Pagamento> pagamentos = pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdOrderByDataCriacaoAsc(ORCAMENTO_ID, EMPRESA_ID);
 
         assertEquals(2, pagamentos.size());
 

@@ -2,11 +2,13 @@ package com.climaservice.api.integration;
 
 import com.climaservice.api.dto.PagamentoRequestDTO;
 import com.climaservice.api.dto.PagamentoResponseDTO;
-import com.climaservice.api.entity.*;
+import com.climaservice.api.entity.FormaPagamento;
+import com.climaservice.api.entity.Pagamento;
+import com.climaservice.api.entity.PagamentoHistorico;
+import com.climaservice.api.entity.StatusPagamento;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.repository.PagamentoHistoricoRepository;
 import com.climaservice.api.repository.PagamentoRepository;
-import org.springframework.boot.test.context.SpringBootTest;
 import com.climaservice.api.service.PagamentoService;
 
 import org.junit.jupiter.api.AfterEach;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,8 +30,10 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class PagamentoServiceIntegrationTest
-        extends AbstractIntegrationTest {
+class PagamentoServiceIntegrationTest extends AbstractIntegrationTest {
+
+    private static final Long EMPRESA_ID = 8001L;
+    private static final Long ORCAMENTO_ID = 4001L;
 
     @Autowired
     private PagamentoService pagamentoService;
@@ -57,8 +62,26 @@ class PagamentoServiceIntegrationTest
                     ordem_servico,
                     equipamento,
                     cliente,
-                    usuario
+                    usuario,
+                    empresa
                 RESTART IDENTITY CASCADE
+                """);
+
+        jdbcTemplate.update("""
+                INSERT INTO empresa (
+                    id,
+                    nome,
+                    cpf_cnpj,
+                    ativo,
+                    data_criacao
+                )
+                VALUES (
+                    8001,
+                    'ClimaService Teste',
+                    NULL,
+                    true,
+                    CURRENT_TIMESTAMP
+                )
                 """);
 
         jdbcTemplate.update("""
@@ -69,7 +92,8 @@ class PagamentoServiceIntegrationTest
                     email,
                     nome,
                     role,
-                    senha_hash
+                    senha_hash,
+                    empresa_id
                 )
                 VALUES (
                     9001,
@@ -78,7 +102,8 @@ class PagamentoServiceIntegrationTest
                     'admin@teste.com',
                     'Administrador Teste',
                     'ADMIN',
-                    'hash-teste'
+                    'hash-teste',
+                    8001
                 )
                 """);
 
@@ -88,14 +113,16 @@ class PagamentoServiceIntegrationTest
                     nome,
                     cpf_cnpj,
                     telefone,
-                    email
+                    email,
+                    empresa_id
                 )
                 VALUES (
                     1001,
                     'Cliente Teste',
                     '12345678901',
                     '47999999999',
-                    'cliente@teste.com'
+                    'cliente@teste.com',
+                    8001
                 )
                 """);
 
@@ -108,7 +135,8 @@ class PagamentoServiceIntegrationTest
                     modelo,
                     numero_serie,
                     cliente_id,
-                    status
+                    status,
+                    empresa_id
                 )
                 VALUES (
                     2001,
@@ -118,7 +146,8 @@ class PagamentoServiceIntegrationTest
                     'Dual Inverter',
                     'SERIE-001',
                     1001,
-                    'ATIVO'
+                    'ATIVO',
+                    8001
                 )
                 """);
 
@@ -130,7 +159,8 @@ class PagamentoServiceIntegrationTest
                     diagnostico,
                     status,
                     cliente_id,
-                    equipamento_id
+                    equipamento_id,
+                    empresa_id
                 )
                 VALUES (
                     3001,
@@ -139,7 +169,8 @@ class PagamentoServiceIntegrationTest
                     NULL,
                     'ABERTA',
                     1001,
-                    2001
+                    2001,
+                    8001
                 )
                 """);
 
@@ -152,7 +183,8 @@ class PagamentoServiceIntegrationTest
                     observacao,
                     status,
                     valor_total,
-                    ordem_servico_id
+                    ordem_servico_id,
+                    empresa_id
                 )
                 VALUES (
                     4001,
@@ -162,7 +194,8 @@ class PagamentoServiceIntegrationTest
                     'Orçamento de teste',
                     'APROVADO',
                     1000.00,
-                    3001
+                    3001,
+                    8001
                 )
                 """);
 
@@ -192,7 +225,7 @@ class PagamentoServiceIntegrationTest
         PagamentoRequestDTO dto = new PagamentoRequestDTO(new BigDecimal("250.00"), FormaPagamento.PIX, "Pagamento integração");
 
         // Act - criação
-        PagamentoResponseDTO criado = pagamentoService.criar(4001L, dto);
+        PagamentoResponseDTO criado = pagamentoService.criar(ORCAMENTO_ID, dto);
 
         // Assert - criação
         assertNotNull(criado);
@@ -202,7 +235,7 @@ class PagamentoServiceIntegrationTest
 
         assertEquals(0, new BigDecimal("250.00").compareTo(criado.valor()));
 
-        Pagamento pagamentoPersistido = pagamentoRepository.findById(criado.id()).orElseThrow();
+        Pagamento pagamentoPersistido = pagamentoRepository.findByIdAndOrcamento_Empresa_Id(criado.id(), EMPRESA_ID).orElseThrow();
 
         assertEquals(StatusPagamento.PENDENTE, pagamentoPersistido.getStatus());
 
@@ -226,7 +259,7 @@ class PagamentoServiceIntegrationTest
 
         assertNotNull(confirmado.dataConfirmacao());
 
-        Pagamento pagamentoConfirmado = pagamentoRepository.findById(criado.id()).orElseThrow();
+        Pagamento pagamentoConfirmado = pagamentoRepository.findByIdAndOrcamento_Empresa_Id(criado.id(), EMPRESA_ID).orElseThrow();
 
         assertEquals(StatusPagamento.CONFIRMADO, pagamentoConfirmado.getStatus());
 
@@ -251,16 +284,16 @@ class PagamentoServiceIntegrationTest
         // Arrange
         PagamentoRequestDTO primeiroPagamento = new PagamentoRequestDTO(new BigDecimal("900.00"), FormaPagamento.PIX, "Pagamento inicial");
 
-        pagamentoService.criar(4001L, primeiroPagamento);
+        pagamentoService.criar(ORCAMENTO_ID, primeiroPagamento);
 
         PagamentoRequestDTO pagamentoAcimaDoSaldo = new PagamentoRequestDTO(new BigDecimal("150.00"), FormaPagamento.PIX, "Pagamento inválido");
 
         // Act + Assert
-        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> pagamentoService.criar(4001L, pagamentoAcimaDoSaldo));
+        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> pagamentoService.criar(ORCAMENTO_ID, pagamentoAcimaDoSaldo));
 
         assertEquals("O valor do pagamento ultrapassa o saldo disponível de 100.00", exception.getMessage());
 
-        List<Pagamento> pagamentos = pagamentoRepository.findByOrcamentoIdOrderByDataCriacaoAsc(4001L);
+        List<Pagamento> pagamentos = pagamentoRepository.findByOrcamento_IdAndOrcamento_Empresa_IdOrderByDataCriacaoAsc(ORCAMENTO_ID, EMPRESA_ID);
 
         assertEquals(1, pagamentos.size());
 

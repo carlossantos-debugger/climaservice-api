@@ -24,15 +24,20 @@ public class Produto {
     @Column(nullable = false)
     private Boolean ativo;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
+
     public Produto() {
     }
 
-    public Produto(String nome, String descricao, BigDecimal valorPadrao) {
+    public Produto(String nome, String descricao, BigDecimal valorPadrao, Empresa empresa) {
 
         this.nome = nome;
         this.descricao = descricao;
         this.valorPadrao = valorPadrao;
         this.ativo = true;
+        this.empresa = empresa;
     }
 
     public Long getId() {
@@ -69,5 +74,9 @@ public class Produto {
 
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public Empresa getEmpresa() {
+        return empresa;
     }
 }

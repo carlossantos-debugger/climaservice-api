@@ -5,9 +5,9 @@ import com.climaservice.api.entity.*;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.*;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,30 +23,31 @@ public class OrdemServicoService {
     private final UsuarioAutenticadoService usuarioAutenticadoService;
     private final OrdemServicoDiagnosticoHistoricoRepository diagnosticoHistoricoRepository;
 
-
     public OrdemServicoService(OrdemServicoRepository ordemServicoRepository, ClienteRepository clienteRepository, EquipamentoRepository equipamentoRepository, OrdemServicoHistoricoRepository historicoRepository, UsuarioAutenticadoService usuarioAutenticadoService, OrdemServicoDiagnosticoHistoricoRepository diagnosticoHistoricoRepository) {
-
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
         this.equipamentoRepository = equipamentoRepository;
         this.historicoRepository = historicoRepository;
         this.usuarioAutenticadoService = usuarioAutenticadoService;
         this.diagnosticoHistoricoRepository = diagnosticoHistoricoRepository;
-
     }
 
     @Transactional
     public OrdemServicoResponseDTO salvar(OrdemServicoRequestDTO dto) {
 
-        Cliente cliente = clienteRepository.findById(dto.clienteId()).orElseThrow(() -> new ResourceNotFoundException("Cliente com ID " + dto.clienteId() + " não encontrado"));
+        Empresa empresa = usuarioAutenticadoService.obterEmpresaAtual();
 
-        Equipamento equipamento = equipamentoRepository.findById(dto.equipamentoId()).orElseThrow(() -> new ResourceNotFoundException("Equipamento com ID " + dto.equipamentoId() + " não encontrado"));
+        Long empresaId = empresa.getId();
+
+        Cliente cliente = clienteRepository.findByIdAndEmpresa_Id(dto.clienteId(), empresaId).orElseThrow(() -> new ResourceNotFoundException("Cliente com ID " + dto.clienteId() + " não encontrado"));
+
+        Equipamento equipamento = equipamentoRepository.findByIdAndEmpresa_Id(dto.equipamentoId(), empresaId).orElseThrow(() -> new ResourceNotFoundException("Equipamento com ID " + dto.equipamentoId() + " não encontrado"));
 
         validarEquipamentoDoCliente(cliente, equipamento);
 
         validarEquipamentoAtivo(equipamento);
 
-        OrdemServico ordemServico = new OrdemServico(cliente, equipamento, dto.descricaoProblema());
+        OrdemServico ordemServico = new OrdemServico(cliente, equipamento, dto.descricaoProblema(), empresa);
 
         OrdemServico ordemServicoSalva = ordemServicoRepository.save(ordemServico);
 
@@ -74,25 +75,41 @@ public class OrdemServicoService {
     @Transactional(readOnly = true)
     public List<OrdemServicoResponseDTO> listarTodas() {
 
-        return ordemServicoRepository.findAll().stream().map(this::converterParaResponse).toList();
+        Long empresaId = obterEmpresaIdAtual();
+
+        return ordemServicoRepository.findByEmpresa_IdOrderByDataAberturaDesc(empresaId).stream().map(this::converterParaResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public Optional<OrdemServicoResponseDTO> buscarPorId(Long id) {
 
-        return ordemServicoRepository.findById(id).map(this::converterParaResponse);
+        Long empresaId = obterEmpresaIdAtual();
+
+        return ordemServicoRepository.findByIdAndEmpresa_Id(id, empresaId).map(this::converterParaResponse);
     }
 
     @Transactional(readOnly = true)
     public List<OrdemServicoResponseDTO> listarPorCliente(Long clienteId) {
 
-        return ordemServicoRepository.findByClienteId(clienteId).stream().map(this::converterParaResponse).toList();
+        Long empresaId = obterEmpresaIdAtual();
+
+        /*
+         * Impede que alguém consulte ordens usando
+         * o ID de um cliente de outro tenant.
+         */
+        buscarClienteDaEmpresaAtual(clienteId, empresaId);
+
+        return ordemServicoRepository.findByCliente_IdAndEmpresa_IdOrderByDataAberturaDesc(clienteId, empresaId).stream().map(this::converterParaResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public List<OrdemServicoResponseDTO> listarPorEquipamento(Long equipamentoId) {
 
-        return ordemServicoRepository.findByEquipamentoId(equipamentoId).stream().map(this::converterParaResponse).toList();
+        Long empresaId = obterEmpresaIdAtual();
+
+        buscarEquipamentoDaEmpresaAtual(equipamentoId, empresaId);
+
+        return ordemServicoRepository.findByEquipamento_IdAndEmpresa_IdOrderByDataAberturaDesc(equipamentoId, empresaId).stream().map(this::converterParaResponse).toList();
     }
 
     @Transactional
@@ -102,7 +119,7 @@ public class OrdemServicoService {
 
         if (ordemServico.getStatus() == StatusOrdemServico.CONCLUIDA || ordemServico.getStatus() == StatusOrdemServico.CANCELADA) {
 
-            throw new BusinessRuleException("Não é possível alterar o diagnóstico de uma ordem concluída ou cancelada");
+            throw new BusinessRuleException("Não é possível alterar o diagnóstico " + "de uma ordem concluída ou cancelada");
         }
 
         String diagnosticoAnterior = ordemServico.getDiagnostico();
@@ -131,6 +148,7 @@ public class OrdemServicoService {
         };
 
         if (!transicaoValida) {
+
             throw new BusinessRuleException("Transição de status inválida: " + atual + " -> " + novo);
         }
     }
@@ -149,6 +167,7 @@ public class OrdemServicoService {
         ordemServico.setStatus(novoStatus);
 
         if (novoStatus == StatusOrdemServico.CONCLUIDA) {
+
             ordemServico.setDataConclusao(LocalDateTime.now());
         }
 
@@ -162,9 +181,13 @@ public class OrdemServicoService {
     @Transactional(readOnly = true)
     public List<OrdemServicoHistoricoResponseDTO> listarHistorico(Long ordemServicoId) {
 
-        if (!ordemServicoRepository.existsById(ordemServicoId)) {
-            throw new ResourceNotFoundException("Ordem de serviço com ID " + ordemServicoId + " não encontrada");
-        }
+        /*
+         * Primeiro verifica a OS dentro do tenant.
+         *
+         * Portanto uma OS de outra empresa será tratada
+         * como inexistente.
+         */
+        buscarEntidadePorId(ordemServicoId);
 
         return historicoRepository.findByOrdemServicoIdOrderByDataAlteracaoAsc(ordemServicoId).stream().map(this::converterHistoricoParaResponse).toList();
     }
@@ -176,15 +199,19 @@ public class OrdemServicoService {
 
     private OrdemServico buscarEntidadePorId(Long id) {
 
-        return ordemServicoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + id + " não encontrada"));
+        Long empresaId = obterEmpresaIdAtual();
+
+        return ordemServicoRepository.findByIdAndEmpresa_Id(id, empresaId).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + id + " não encontrada"));
     }
 
     @Transactional(readOnly = true)
     public List<OrdemServicoDiagnosticoHistoricoResponseDTO> listarHistoricoDiagnostico(Long ordemServicoId) {
 
-        if (!ordemServicoRepository.existsById(ordemServicoId)) {
-            throw new ResourceNotFoundException("Ordem de serviço com ID " + ordemServicoId + " não encontrada");
-        }
+        /*
+         * Mesma proteção aplicada ao histórico
+         * de diagnóstico.
+         */
+        buscarEntidadePorId(ordemServicoId);
 
         return diagnosticoHistoricoRepository.findByOrdemServicoIdOrderByDataAlteracaoAsc(ordemServicoId).stream().map(this::converterDiagnosticoHistoricoParaResponse).toList();
     }
@@ -207,6 +234,21 @@ public class OrdemServicoService {
         diagnosticoHistoricoRepository.save(historico);
     }
 
+    private Cliente buscarClienteDaEmpresaAtual(Long clienteId, Long empresaId) {
+
+        return clienteRepository.findByIdAndEmpresa_Id(clienteId, empresaId).orElseThrow(() -> new ResourceNotFoundException("Cliente com ID " + clienteId + " não encontrado"));
+    }
+
+    private Equipamento buscarEquipamentoDaEmpresaAtual(Long equipamentoId, Long empresaId) {
+
+        return equipamentoRepository.findByIdAndEmpresa_Id(equipamentoId, empresaId).orElseThrow(() -> new ResourceNotFoundException("Equipamento com ID " + equipamentoId + " não encontrado"));
+    }
+
+    private Long obterEmpresaIdAtual() {
+
+        return usuarioAutenticadoService.obterEmpresaAtual().getId();
+    }
+
     private OrdemServicoResponseDTO converterParaResponse(OrdemServico ordemServico) {
 
         return new OrdemServicoResponseDTO(ordemServico.getId(),
@@ -226,6 +268,4 @@ public class OrdemServicoService {
 
         return new OrdemServicoDiagnosticoHistoricoResponseDTO(historico.getId(), historico.getDiagnosticoAnterior(), historico.getDiagnosticoNovo(), historico.getDataAlteracao(), historico.getUsuario() != null ? historico.getUsuario().getId() : null, historico.getUsuario() != null ? historico.getUsuario().getNome() : null);
     }
-
-
 }

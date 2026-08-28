@@ -5,6 +5,7 @@ import com.climaservice.api.entity.*;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.*;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +25,6 @@ public class OrcamentoService {
     private final UsuarioAutenticadoService usuarioAutenticadoService;
 
     public OrcamentoService(OrcamentoRepository orcamentoRepository, OrcamentoItemRepository orcamentoItemRepository, OrdemServicoRepository ordemServicoRepository, ServicoRepository servicoRepository, ProdutoRepository produtoRepository, OrcamentoHistoricoRepository historicoRepository, UsuarioAutenticadoService usuarioAutenticadoService) {
-
         this.orcamentoRepository = orcamentoRepository;
         this.orcamentoItemRepository = orcamentoItemRepository;
         this.ordemServicoRepository = ordemServicoRepository;
@@ -32,17 +32,20 @@ public class OrcamentoService {
         this.produtoRepository = produtoRepository;
         this.historicoRepository = historicoRepository;
         this.usuarioAutenticadoService = usuarioAutenticadoService;
-
     }
 
     @Transactional
     public OrcamentoResponseDTO criar(Long ordemServicoId, OrcamentoRequestDTO dto) {
 
-        OrdemServico ordemServico = ordemServicoRepository.findById(ordemServicoId).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + ordemServicoId + " não encontrada"));
+        Empresa empresa = usuarioAutenticadoService.obterEmpresaAtual();
+
+        Long empresaId = empresa.getId();
+
+        OrdemServico ordemServico = ordemServicoRepository.findByIdAndEmpresa_Id(ordemServicoId, empresaId).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + ordemServicoId + " não encontrada"));
 
         validarOrdemServicoParaOrcamento(ordemServico);
 
-        Orcamento orcamento = new Orcamento(ordemServico, dto.observacao());
+        Orcamento orcamento = new Orcamento(ordemServico, dto.observacao(), empresa);
 
         Orcamento orcamentoSalvo = orcamentoRepository.save(orcamento);
 
@@ -54,10 +57,12 @@ public class OrcamentoService {
     private void validarOrdemServicoParaOrcamento(OrdemServico ordemServico) {
 
         if (ordemServico.getStatus() == StatusOrdemServico.CANCELADA) {
+
             throw new BusinessRuleException("Não é possível criar orçamento para uma ordem de serviço cancelada");
         }
 
         if (ordemServico.getStatus() == StatusOrdemServico.CONCLUIDA) {
+
             throw new BusinessRuleException("Não é possível criar orçamento para uma ordem de serviço concluída");
         }
     }
@@ -65,16 +70,18 @@ public class OrcamentoService {
     @Transactional(readOnly = true)
     public List<OrcamentoResponseDTO> listarPorOrdemServico(Long ordemServicoId) {
 
-        if (!ordemServicoRepository.existsById(ordemServicoId)) {
-            throw new ResourceNotFoundException("Ordem de serviço com ID " + ordemServicoId + " não encontrada");
-        }
+        Long empresaId = obterEmpresaIdAtual();
 
-        return orcamentoRepository.findByOrdemServicoIdOrderByDataCriacaoDesc(ordemServicoId).stream().map(this::converterParaResponse).toList();
+        ordemServicoRepository.findByIdAndEmpresa_Id(ordemServicoId, empresaId).orElseThrow(() -> new ResourceNotFoundException("Ordem de serviço com ID " + ordemServicoId + " não encontrada"));
+
+        return orcamentoRepository.findByOrdemServico_IdAndEmpresa_IdOrderByDataCriacaoDesc(ordemServicoId, empresaId).stream().map(this::converterParaResponse).toList();
     }
 
     private Orcamento buscarOrcamentoPorId(Long id) {
 
-        return orcamentoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Orçamento com ID " + id + " não encontrado"));
+        Long empresaId = obterEmpresaIdAtual();
+
+        return orcamentoRepository.findByIdAndEmpresa_Id(id, empresaId).orElseThrow(() -> new ResourceNotFoundException("Orçamento com ID " + id + " não encontrado"));
     }
 
     @Transactional(readOnly = true)
@@ -92,7 +99,9 @@ public class OrcamentoService {
 
         validarOrcamentoRascunho(orcamento);
 
-        Servico servico = servicoRepository.findById(dto.servicoId()).orElseThrow(() -> new ResourceNotFoundException("Serviço com ID " + dto.servicoId() + " não encontrado"));
+        Long empresaId = obterEmpresaIdAtual();
+
+        Servico servico = servicoRepository.findByIdAndEmpresa_Id(dto.servicoId(), empresaId).orElseThrow(() -> new ResourceNotFoundException("Serviço com ID " + dto.servicoId() + " não encontrado"));
 
         validarServicoAtivo(servico);
 
@@ -114,7 +123,9 @@ public class OrcamentoService {
 
         validarOrcamentoRascunho(orcamento);
 
-        Produto produto = produtoRepository.findById(dto.produtoId()).orElseThrow(() -> new ResourceNotFoundException("Produto com ID " + dto.produtoId() + " não encontrado"));
+        Long empresaId = obterEmpresaIdAtual();
+
+        Produto produto = produtoRepository.findByIdAndEmpresa_Id(dto.produtoId(), empresaId).orElseThrow(() -> new ResourceNotFoundException("Produto com ID " + dto.produtoId() + " não encontrado"));
 
         validarProdutoAtivo(produto);
 
@@ -132,6 +143,7 @@ public class OrcamentoService {
     private void validarOrcamentoRascunho(Orcamento orcamento) {
 
         if (orcamento.getStatus() != StatusOrcamento.RASCUNHO) {
+
             throw new BusinessRuleException("Somente orçamentos em rascunho podem ser alterados");
         }
     }
@@ -139,7 +151,16 @@ public class OrcamentoService {
     private void validarServicoAtivo(Servico servico) {
 
         if (!Boolean.TRUE.equals(servico.getAtivo())) {
+
             throw new BusinessRuleException("Não é possível adicionar um serviço inativo ao orçamento");
+        }
+    }
+
+    private void validarProdutoAtivo(Produto produto) {
+
+        if (!Boolean.TRUE.equals(produto.getAtivo())) {
+
+            throw new BusinessRuleException("Não é possível adicionar um produto inativo ao orçamento");
         }
     }
 
@@ -164,9 +185,7 @@ public class OrcamentoService {
 
     private OrcamentoItemResponseDTO converterItemParaResponse(OrcamentoItem item) {
 
-        return new OrcamentoItemResponseDTO(item.getId(),
-
-                item.getTipo(),
+        return new OrcamentoItemResponseDTO(item.getId(), item.getTipo(),
 
                 item.getServico() != null ? item.getServico().getId() : null,
 
@@ -184,6 +203,15 @@ public class OrcamentoService {
         return servico.getValorPadrao();
     }
 
+    private BigDecimal definirValorUnitarioProduto(OrcamentoProdutoItemRequestDTO dto, Produto produto) {
+
+        if (dto.valorUnitario() != null) {
+            return dto.valorUnitario();
+        }
+
+        return produto.getValorPadrao();
+    }
+
     @Transactional
     public OrcamentoResponseDTO atualizarStatus(Long id, AtualizarStatusOrcamentoRequestDTO dto) {
 
@@ -196,6 +224,7 @@ public class OrcamentoService {
         validarTransicaoStatus(statusAnterior, novoStatus);
 
         if (novoStatus == StatusOrcamento.ENVIADO) {
+
             validarOrcamentoPossuiItens(orcamento);
 
             orcamento.setDataEnvio(LocalDateTime.now());
@@ -227,6 +256,7 @@ public class OrcamentoService {
         };
 
         if (!transicaoValida) {
+
             throw new BusinessRuleException("Transição de status inválida: " + atual + " -> " + novo);
         }
     }
@@ -236,6 +266,7 @@ public class OrcamentoService {
         List<OrcamentoItem> itens = orcamentoItemRepository.findByOrcamentoIdOrderByIdAsc(orcamento.getId());
 
         if (itens.isEmpty()) {
+
             throw new BusinessRuleException("Não é possível enviar um orçamento sem itens");
         }
     }
@@ -247,9 +278,9 @@ public class OrcamentoService {
 
         validarOrcamentoRascunho(orcamento);
 
-        OrcamentoItem item = buscarItemPorId(itemId);
+        Long empresaId = obterEmpresaIdAtual();
 
-        validarItemPertenceAoOrcamento(item, orcamento);
+        OrcamentoItem item = buscarItemDoOrcamento(itemId, orcamentoId, empresaId);
 
         BigDecimal valorUnitario = dto.valorUnitario() != null ? dto.valorUnitario() : item.getValorUnitario();
 
@@ -262,17 +293,9 @@ public class OrcamentoService {
         return converterItemParaResponse(itemAtualizado);
     }
 
-    private OrcamentoItem buscarItemPorId(Long itemId) {
+    private OrcamentoItem buscarItemDoOrcamento(Long itemId, Long orcamentoId, Long empresaId) {
 
-        return orcamentoItemRepository.findById(itemId).orElseThrow(() -> new ResourceNotFoundException("Item de orçamento com ID " + itemId + " não encontrado"));
-    }
-
-    private void validarItemPertenceAoOrcamento(OrcamentoItem item, Orcamento orcamento) {
-
-        if (!item.getOrcamento().getId().equals(orcamento.getId())) {
-
-            throw new BusinessRuleException("O item informado não pertence ao orçamento");
-        }
+        return orcamentoItemRepository.findByIdAndOrcamento_IdAndOrcamento_Empresa_Id(itemId, orcamentoId, empresaId).orElseThrow(() -> new ResourceNotFoundException("Item de orçamento com ID " + itemId + " não encontrado"));
     }
 
     @Transactional
@@ -282,31 +305,15 @@ public class OrcamentoService {
 
         validarOrcamentoRascunho(orcamento);
 
-        OrcamentoItem item = buscarItemPorId(itemId);
+        Long empresaId = obterEmpresaIdAtual();
 
-        validarItemPertenceAoOrcamento(item, orcamento);
+        OrcamentoItem item = buscarItemDoOrcamento(itemId, orcamentoId, empresaId);
 
         orcamentoItemRepository.delete(item);
 
         orcamentoItemRepository.flush();
 
         recalcularValorTotal(orcamento);
-    }
-
-    private void validarProdutoAtivo(Produto produto) {
-
-        if (!Boolean.TRUE.equals(produto.getAtivo())) {
-            throw new BusinessRuleException("Não é possível adicionar um produto inativo ao orçamento");
-        }
-    }
-
-    private BigDecimal definirValorUnitarioProduto(OrcamentoProdutoItemRequestDTO dto, Produto produto) {
-
-        if (dto.valorUnitario() != null) {
-            return dto.valorUnitario();
-        }
-
-        return produto.getValorPadrao();
     }
 
     private void registrarHistoricoStatus(Orcamento orcamento, StatusOrcamento statusAnterior, StatusOrcamento statusNovo) {
@@ -321,16 +328,27 @@ public class OrcamentoService {
     @Transactional(readOnly = true)
     public List<OrcamentoHistoricoResponseDTO> listarHistorico(Long orcamentoId) {
 
-        if (!orcamentoRepository.existsById(orcamentoId)) {
-            throw new ResourceNotFoundException("Orçamento com ID " + orcamentoId + " não encontrado");
-        }
+        /*
+         * Protege o histórico pelo tenant antes
+         * de consultar OrcamentoHistorico.
+         */
+        buscarOrcamentoPorId(orcamentoId);
 
         return historicoRepository.findByOrcamentoIdOrderByDataAlteracaoAsc(orcamentoId).stream().map(this::converterHistoricoParaResponse).toList();
     }
 
     private OrcamentoHistoricoResponseDTO converterHistoricoParaResponse(OrcamentoHistorico historico) {
 
-        return new OrcamentoHistoricoResponseDTO(historico.getId(), historico.getStatusAnterior(), historico.getStatusNovo(), historico.getDataAlteracao(), historico.getUsuario() != null ? historico.getUsuario().getId() : null, historico.getUsuario() != null ? historico.getUsuario().getNome() : null);
+        return new OrcamentoHistoricoResponseDTO(historico.getId(), historico.getStatusAnterior(), historico.getStatusNovo(), historico.getDataAlteracao(),
+
+                historico.getUsuario() != null ? historico.getUsuario().getId() : null,
+
+                historico.getUsuario() != null ? historico.getUsuario().getNome() : null);
+    }
+
+    private Long obterEmpresaIdAtual() {
+
+        return usuarioAutenticadoService.obterEmpresaAtual().getId();
     }
 
     private OrcamentoResponseDTO converterParaResponse(Orcamento orcamento) {
