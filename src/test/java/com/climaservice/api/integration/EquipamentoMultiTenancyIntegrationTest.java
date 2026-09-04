@@ -2,6 +2,8 @@ package com.climaservice.api.integration;
 
 import com.climaservice.api.dto.EquipamentoRequestDTO;
 import com.climaservice.api.dto.EquipamentoResponseDTO;
+import com.climaservice.api.dto.PageResponseDTO;
+import com.climaservice.api.entity.StatusEquipamento;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.service.EquipamentoService;
 
@@ -187,6 +189,17 @@ class EquipamentoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
                         2001,
                         'ATIVO',
                         8002
+                    ),
+                    (
+                        3002,
+                        9000,
+                        'Quarto Empresa A',
+                        'Daikin',
+                        'EcoSwing',
+                        'SERIE-A2',
+                        1001,
+                        'INATIVO',
+                        8001
                     )
                 """);
 
@@ -206,18 +219,62 @@ class EquipamentoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
     void deveListarSomenteEquipamentosDaEmpresaAutenticada() {
 
         // Act
-        List<EquipamentoResponseDTO> equipamentos = equipamentoService.listarTodos();
+        PageResponseDTO<EquipamentoResponseDTO> resultado = equipamentoService.listar(null, null, null, null, 0, 20);
 
         // Assert
-        assertEquals(1, equipamentos.size());
+        assertEquals(2, resultado.totalElements());
 
-        EquipamentoResponseDTO equipamento = equipamentos.get(0);
+        List<EquipamentoResponseDTO> equipamentos = resultado.content();
 
-        assertEquals(3001L, equipamento.id());
-
-        assertEquals("LG", equipamento.marca());
+        assertTrue(equipamentos.stream().anyMatch(e -> e.id().equals(3001L)));
 
         assertTrue(equipamentos.stream().noneMatch(e -> e.id().equals(4001L)));
+    }
+
+    @Test
+    void devePaginarEquipamentosDaEmpresaAutenticada() {
+
+        PageResponseDTO<EquipamentoResponseDTO> primeiraPagina = equipamentoService.listar(null, null, null, null, 0, 1);
+
+        assertEquals(1, primeiraPagina.content().size());
+
+        assertEquals(2, primeiraPagina.totalElements());
+
+        assertEquals(2, primeiraPagina.totalPages());
+    }
+
+    @Test
+    void deveFiltrarEquipamentosPorStatus() {
+
+        PageResponseDTO<EquipamentoResponseDTO> resultado = equipamentoService.listar(null, StatusEquipamento.INATIVO, null, null, 0, 20);
+
+        assertEquals(1, resultado.totalElements());
+
+        assertEquals(3002L, resultado.content().get(0).id());
+    }
+
+    @Test
+    void deveFiltrarEquipamentosPorMarcaEModelo() {
+
+        PageResponseDTO<EquipamentoResponseDTO> porMarca = equipamentoService.listar(null, null, "daikin", null, 0, 20);
+
+        assertEquals(1, porMarca.totalElements());
+
+        assertEquals(3002L, porMarca.content().get(0).id());
+
+        PageResponseDTO<EquipamentoResponseDTO> porModelo = equipamentoService.listar(null, null, null, "Dual Inverter", 0, 20);
+
+        assertEquals(1, porModelo.totalElements());
+
+        assertEquals(3001L, porModelo.content().get(0).id());
+    }
+
+    @Test
+    void deveFiltrarEquipamentosPorCliente() {
+
+        PageResponseDTO<EquipamentoResponseDTO> resultado = equipamentoService.listar(1001L, null, null, null, 0, 20);
+
+        assertEquals(2, resultado.totalElements());
     }
 
     @Test
@@ -265,16 +322,16 @@ class EquipamentoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
         autenticar("admin-b@teste.com", "ADMIN");
 
         // Act
-        List<EquipamentoResponseDTO> equipamentos = equipamentoService.listarTodos();
+        PageResponseDTO<EquipamentoResponseDTO> resultado = equipamentoService.listar(null, null, null, null, 0, 20);
 
         // Assert
-        assertEquals(1, equipamentos.size());
+        assertEquals(1, resultado.totalElements());
 
-        assertEquals(4001L, equipamentos.get(0).id());
+        assertEquals(4001L, resultado.content().get(0).id());
 
-        assertEquals("Samsung", equipamentos.get(0).marca());
+        assertEquals("Samsung", resultado.content().get(0).marca());
 
-        assertTrue(equipamentos.stream().noneMatch(e -> e.id().equals(3001L)));
+        assertTrue(resultado.content().stream().noneMatch(e -> e.id().equals(3001L)));
     }
 
     @Test
@@ -301,10 +358,10 @@ class EquipamentoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
                 """, Integer.class);
 
         /*
-         * Continua existindo apenas o equipamento
-         * original da Empresa A.
+         * Continuam existindo apenas os equipamentos
+         * originais da Empresa A.
          */
-        assertEquals(1, quantidade);
+        assertEquals(2, quantidade);
     }
 
     @Test

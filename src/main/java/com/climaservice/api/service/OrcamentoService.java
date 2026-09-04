@@ -6,6 +6,10 @@ import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,6 +69,18 @@ public class OrcamentoService {
 
             throw new BusinessRuleException("Não é possível criar orçamento para uma ordem de serviço concluída");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<OrcamentoResponseDTO> listar(StatusOrcamento status, LocalDateTime dataInicial, LocalDateTime dataFinal, int page, int size) {
+
+        Long empresaId = obterEmpresaIdAtual();
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dataCriacao"));
+
+        Page<OrcamentoResponseDTO> resultado = orcamentoRepository.findAll(OrcamentoSpecifications.comFiltros(empresaId, status, dataInicial, dataFinal), pageable).map(this::converterParaResponse);
+
+        return PageResponseDTO.from(resultado);
     }
 
     @Transactional(readOnly = true)

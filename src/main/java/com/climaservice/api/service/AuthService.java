@@ -32,6 +32,8 @@ public class AuthService {
 
         validarUsuarioAtivo(usuario);
 
+        validarEmpresaAtiva(usuario);
+
         validarSenha(dto.senha(), usuario.getSenhaHash());
 
         String token = jwtService.gerarToken(usuario);
@@ -48,6 +50,13 @@ public class AuthService {
 
         if (!Boolean.TRUE.equals(usuario.getAtivo())) {
             throw new BusinessRuleException("Usuário inativo");
+        }
+    }
+
+    private void validarEmpresaAtiva(Usuario usuario) {
+
+        if (!usuario.getEmpresa().isAtivo()) {
+            throw new BusinessRuleException("Empresa inativa");
         }
     }
 

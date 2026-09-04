@@ -5,12 +5,13 @@ import com.climaservice.api.entity.StatusEquipamento;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface EquipamentoRepository
-        extends JpaRepository<Equipamento, Long> {
+        extends JpaRepository<Equipamento, Long>, JpaSpecificationExecutor<Equipamento> {
 
     @EntityGraph(attributePaths = "cliente")
     List<Equipamento> findByEmpresa_IdOrderByIdAsc(
@@ -34,5 +35,10 @@ public interface EquipamentoRepository
             Long clienteId,
             StatusEquipamento status,
             Long empresaId
+    );
+
+    long countByEmpresa_IdAndStatus(
+            Long empresaId,
+            StatusEquipamento status
     );
 }

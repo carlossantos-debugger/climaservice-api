@@ -4,6 +4,7 @@ import com.climaservice.api.dto.AtualizarDiagnosticoRequestDTO;
 import com.climaservice.api.dto.AtualizarStatusOrdemServicoRequestDTO;
 import com.climaservice.api.dto.OrdemServicoRequestDTO;
 import com.climaservice.api.dto.OrdemServicoResponseDTO;
+import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.entity.StatusOrdemServico;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.service.OrdemServicoService;
@@ -227,6 +228,16 @@ class OrdemServicoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
                         2001,
                         4001,
                         8002
+                    ),
+                    (
+                        5002,
+                        CURRENT_TIMESTAMP,
+                        'Segundo problema da Empresa A',
+                        NULL,
+                        'EM_ANDAMENTO',
+                        1001,
+                        3001,
+                        8001
                     )
                 """);
 
@@ -246,16 +257,46 @@ class OrdemServicoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
     void deveListarSomenteOrdensDaEmpresaAutenticada() {
 
         // Act
-        List<OrdemServicoResponseDTO> ordens = ordemServicoService.listarTodas();
+        PageResponseDTO<OrdemServicoResponseDTO> resultado = ordemServicoService.listar(null, null, null, null, null, 0, 20);
 
         // Assert
-        assertEquals(1, ordens.size());
+        assertEquals(2, resultado.totalElements());
 
-        assertEquals(5001L, ordens.get(0).id());
+        List<OrdemServicoResponseDTO> ordens = resultado.content();
 
-        assertEquals("Problema da Empresa A", ordens.get(0).descricaoProblema());
+        assertTrue(ordens.stream().anyMatch(ordem -> ordem.id().equals(5001L) && "Problema da Empresa A".equals(ordem.descricaoProblema())));
 
         assertTrue(ordens.stream().noneMatch(ordem -> ordem.id().equals(6001L)));
+    }
+
+    @Test
+    void devePaginarOrdensDaEmpresaAutenticada() {
+
+        PageResponseDTO<OrdemServicoResponseDTO> primeiraPagina = ordemServicoService.listar(null, null, null, null, null, 0, 1);
+
+        assertEquals(1, primeiraPagina.content().size());
+
+        assertEquals(2, primeiraPagina.totalElements());
+
+        assertEquals(2, primeiraPagina.totalPages());
+    }
+
+    @Test
+    void deveFiltrarOrdensPorStatus() {
+
+        PageResponseDTO<OrdemServicoResponseDTO> resultado = ordemServicoService.listar(StatusOrdemServico.EM_ANDAMENTO, null, null, null, null, 0, 20);
+
+        assertEquals(1, resultado.totalElements());
+
+        assertEquals(5002L, resultado.content().get(0).id());
+    }
+
+    @Test
+    void deveFiltrarOrdensPorClienteEEquipamento() {
+
+        PageResponseDTO<OrdemServicoResponseDTO> resultado = ordemServicoService.listar(null, 1001L, 3001L, null, null, 0, 20);
+
+        assertEquals(2, resultado.totalElements());
     }
 
     @Test
@@ -303,14 +344,14 @@ class OrdemServicoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
         autenticar("admin-b@teste.com", "ADMIN");
 
         // Act
-        List<OrdemServicoResponseDTO> ordens = ordemServicoService.listarTodas();
+        PageResponseDTO<OrdemServicoResponseDTO> resultado = ordemServicoService.listar(null, null, null, null, null, 0, 20);
 
         // Assert
-        assertEquals(1, ordens.size());
+        assertEquals(1, resultado.totalElements());
 
-        assertEquals(6001L, ordens.get(0).id());
+        assertEquals(6001L, resultado.content().get(0).id());
 
-        assertTrue(ordens.stream().noneMatch(ordem -> ordem.id().equals(5001L)));
+        assertTrue(resultado.content().stream().noneMatch(ordem -> ordem.id().equals(5001L)));
     }
 
     @Test
@@ -341,9 +382,9 @@ class OrdemServicoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
                 """, Integer.class);
 
         /*
-         * Continua existindo apenas a OS original.
+         * Continuam existindo apenas as OS originais da Empresa A.
          */
-        assertEquals(1, quantidadeEmpresaA);
+        assertEquals(2, quantidadeEmpresaA);
     }
 
     @Test

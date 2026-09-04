@@ -2,6 +2,7 @@ package com.climaservice.api.service;
 
 import com.climaservice.api.dto.EquipamentoRequestDTO;
 import com.climaservice.api.dto.EquipamentoResponseDTO;
+import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.entity.Cliente;
 import com.climaservice.api.entity.Empresa;
 import com.climaservice.api.entity.Equipamento;
@@ -9,8 +10,14 @@ import com.climaservice.api.entity.StatusEquipamento;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.ClienteRepository;
 import com.climaservice.api.repository.EquipamentoRepository;
+import com.climaservice.api.repository.EquipamentoSpecifications;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,11 +35,16 @@ public class EquipamentoService {
         this.usuarioAutenticadoService = usuarioAutenticadoService;
     }
 
-    public List<EquipamentoResponseDTO> listarTodos() {
+    @Transactional(readOnly = true)
+    public PageResponseDTO<EquipamentoResponseDTO> listar(Long clienteId, StatusEquipamento status, String marca, String modelo, int page, int size) {
 
         Long empresaId = obterEmpresaIdAtual();
 
-        return equipamentoRepository.findByEmpresa_IdOrderByIdAsc(empresaId).stream().map(this::converterParaResponse).toList();
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
+
+        Page<EquipamentoResponseDTO> resultado = equipamentoRepository.findAll(EquipamentoSpecifications.comFiltros(empresaId, clienteId, status, marca, modelo), pageable).map(this::converterParaResponse);
+
+        return PageResponseDTO.from(resultado);
     }
 
     public Optional<EquipamentoResponseDTO> buscarPorId(Long id) {
