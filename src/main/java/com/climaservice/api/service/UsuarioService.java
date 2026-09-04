@@ -3,6 +3,7 @@ package com.climaservice.api.service;
 import com.climaservice.api.dto.UsuarioCadastroRequestDTO;
 import com.climaservice.api.dto.UsuarioResponseDTO;
 import com.climaservice.api.entity.Empresa;
+import com.climaservice.api.entity.RoleUsuario;
 import com.climaservice.api.entity.Usuario;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
@@ -84,11 +85,28 @@ public class UsuarioService {
 
         Usuario usuario = buscarEntidadePorId(id);
 
+        validarNaoRemoverUltimoAdminAtivo(usuario);
+
         usuario.setAtivo(false);
 
         Usuario usuarioAtualizado = usuarioRepository.save(usuario);
 
         return converterParaResponse(usuarioAtualizado);
+    }
+
+    private void validarNaoRemoverUltimoAdminAtivo(Usuario usuario) {
+
+        if (usuario.getRole() != RoleUsuario.ADMIN || !Boolean.TRUE.equals(usuario.getAtivo())) {
+
+            return;
+        }
+
+        long adminsAtivos = usuarioRepository.countByEmpresa_IdAndRoleAndAtivoTrue(usuario.getEmpresa().getId(), RoleUsuario.ADMIN);
+
+        if (adminsAtivos <= 1) {
+
+            throw new BusinessRuleException("A empresa não pode ficar sem nenhum administrador ativo");
+        }
     }
 
     @Transactional
