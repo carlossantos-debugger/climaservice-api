@@ -34,6 +34,10 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.POST, "/auth/register-company").permitAll()
 
+                        .requestMatchers("/actuator/health").permitAll()
+
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
 
                         .anyRequest().authenticated()).exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
