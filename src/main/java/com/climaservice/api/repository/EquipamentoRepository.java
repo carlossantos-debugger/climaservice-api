@@ -36,4 +36,9 @@ public interface EquipamentoRepository
             StatusEquipamento status,
             Long empresaId
     );
+
+    long countByEmpresa_IdAndStatus(
+            Long empresaId,
+            StatusEquipamento status
+    );
 }

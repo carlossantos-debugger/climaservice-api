@@ -62,6 +62,8 @@ Atualmente, a API possui os seguintes módulos:
 - Usuários
 - Autenticação e Autorização
 - Empresas e contexto de tenant
+- Paginação e filtros nos endpoints principais
+- Dashboard (resumo, financeiro, operacional)
 - Migrações versionadas com Flyway
 - Testes unitários e de integração
 
@@ -1027,6 +1029,47 @@ simples — a paginação se aplica às listagens principais, que são as que po
 
 ---
 
+# Dashboard
+
+Endpoints de leitura com métricas agregadas, sempre restritas à empresa do usuário autenticado —
+nenhuma métrica combina dados de tenants diferentes. Acessíveis por qualquer perfil autenticado.
+
+### `GET /dashboard/resumo`
+
+| Métrica | Descrição |
+|---|---|
+| `clientesAtivos` | Total de clientes cadastrados na empresa. `Cliente` não possui um campo de status/ativo, então esta métrica reflete o total de clientes. |
+| `equipamentosAtivos` | Equipamentos com status `ATIVO` |
+| `ordensAbertas` | Ordens de serviço com status `ABERTA` |
+| `ordensEmAndamento` | Ordens de serviço com status `EM_ANDAMENTO` |
+| `orcamentosPendentes` | Orçamentos com status `ENVIADO` (aguardando decisão do cliente — `RASCUNHO` ainda não foi enviado, portanto não é considerado pendente) |
+| `agendamentosHoje` | Agendamentos com início hoje, exceto `CANCELADO` |
+| `receitaConfirmadaNoMes` | Soma de `Pagamento.valor` com status `CONFIRMADO` e confirmação no mês corrente |
+
+### `GET /dashboard/financeiro`
+
+| Métrica | Descrição |
+|---|---|
+| `valorRecebido` | Soma de todos os pagamentos `CONFIRMADO` (todo o período) |
+| `valorPendente` | Soma de todos os pagamentos `PENDENTE` |
+| `ticketMedio` | Valor total médio dos orçamentos `APROVADO` |
+| `quantidadeOrcamentosAprovados` | Quantidade de orçamentos `APROVADO` |
+
+### `GET /dashboard/operacional`
+
+| Métrica | Descrição |
+|---|---|
+| `osPorStatus` | Contagem de ordens de serviço agrupada por cada status possível |
+| `osConcluidas` | Ordens de serviço com status `CONCLUIDA` |
+| `osCanceladas` | Ordens de serviço com status `CANCELADA` |
+| `proximosAgendamentos` | Agendamentos ativos (exclui `CANCELADO`/`CONCLUIDO`) nos próximos 7 dias, até 10 itens |
+| `manutencoesPreventivasProximas` | Reaproveita `GET /planos-manutencao-preventiva/proximas` (30 dias) |
+
+Todas as consultas são resolvidas a partir da empresa do usuário autenticado — nenhum parâmetro de
+requisição seleciona o tenant.
+
+---
+
 # Validações
 
 Os dados recebidos pela API são validados utilizando **Jakarta Bean Validation**.
@@ -1484,12 +1527,12 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Paginação e filtros nos endpoints principais (`PageResponseDTO`)
 - [x] Endpoints primários `GET /orcamentos` e `GET /pagamentos`
 - [x] Índices de banco para os novos filtros e chaves estrangeiras mais usadas em joins
+- [x] Dashboard (resumo, financeiro, operacional), sempre restrito ao tenant autenticado
 
 ## Próximas etapas
 
 - [ ] Testes dedicados de isolamento multi-tenant para `UsuarioService` (a lógica já está correta;
   falta cobertura de teste — ver `chore/backend-hardening`)
-- [ ] Dashboard e relatórios
 - [ ] OpenAPI / Swagger
 - [ ] Docker
 - [ ] Docker Compose
@@ -1569,4 +1612,4 @@ Isolamento multi-tenant
 
 O backend também utiliza **Flyway** para versionamento do banco e uma suíte de testes com **JUnit 5, Mockito e Testcontainers**, executando cenários de integração contra PostgreSQL real em container.
 
-Agenda de atendimentos e manutenção preventiva já estão implementadas. As próximas etapas são paginação/filtros nos endpoints principais, dashboard e relatórios, testes dedicados de isolamento multi-tenant para `UsuarioService`, OpenAPI/Swagger, Docker, CI/CD e frontend com Angular.
+Agenda de atendimentos, manutenção preventiva, paginação/filtros nos endpoints principais e dashboard já estão implementados. As próximas etapas são testes dedicados de isolamento multi-tenant para `UsuarioService`, OpenAPI/Swagger, Docker, CI/CD e frontend com Angular.

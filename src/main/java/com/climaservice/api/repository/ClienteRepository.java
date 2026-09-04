@@ -17,4 +17,8 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>, JpaSpec
             Long id,
             Long empresaId
     );
+
+    long countByEmpresa_Id(
+            Long empresaId
+    );
 }

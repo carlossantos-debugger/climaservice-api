@@ -37,6 +37,8 @@ public class AgendamentoService {
 
     private static final List<StatusAgendamento> STATUS_ATIVOS = List.of(StatusAgendamento.AGENDADO, StatusAgendamento.CONFIRMADO, StatusAgendamento.EM_ATENDIMENTO);
 
+    private static final int LIMITE_PROXIMOS_AGENDAMENTOS = 10;
+
     private final AgendamentoRepository agendamentoRepository;
     private final AgendamentoHistoricoRepository historicoRepository;
     private final OrdemServicoRepository ordemServicoRepository;
@@ -140,6 +142,24 @@ public class AgendamentoService {
     public AgendamentoResponseDTO buscarPorId(Long id) {
 
         return converterParaResponse(buscarEntidadePorId(id));
+    }
+
+    /*
+     * Usado pelo dashboard operacional: próximos agendamentos
+     * ativos (exclui CANCELADO/CONCLUIDO) dentro da janela informada.
+     */
+    @Transactional(readOnly = true)
+    public List<AgendamentoResponseDTO> listarProximos(int diasLimite) {
+
+        Long empresaId = obterEmpresaIdAtual();
+
+        LocalDateTime agora = LocalDateTime.now();
+
+        LocalDateTime limite = agora.plusDays(diasLimite);
+
+        List<StatusAgendamento> statusExcluidos = List.of(StatusAgendamento.CANCELADO, StatusAgendamento.CONCLUIDO);
+
+        return agendamentoRepository.findByEmpresa_IdAndDataHoraInicioBetweenAndStatusNotInOrderByDataHoraInicioAsc(empresaId, agora, limite, statusExcluidos, PageRequest.of(0, LIMITE_PROXIMOS_AGENDAMENTOS)).stream().map(this::converterParaResponse).toList();
     }
 
     @Transactional(readOnly = true)
