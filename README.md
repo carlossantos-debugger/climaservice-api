@@ -1429,6 +1429,52 @@ http://localhost:8080
 
 ---
 
+# Docker
+
+O projeto também pode ser executado inteiramente via Docker, sem precisar instalar JDK ou PostgreSQL localmente.
+
+## Pré-requisitos
+
+- Docker
+- Docker Compose (já incluso no Docker Desktop)
+
+## Subindo o ambiente
+
+Copie o arquivo de exemplo de variáveis de ambiente e preencha com valores reais:
+
+```bash
+cp .env.example .env
+```
+
+Suba a API e o PostgreSQL:
+
+```bash
+docker compose up --build
+```
+
+O Compose sobe dois serviços:
+
+- `db`: PostgreSQL, com volume persistente e healthcheck (`pg_isready`)
+- `api`: build multi-stage a partir do `Dockerfile` (JDK 21 para build, JRE 21 Alpine no runtime, usuário não-root), só inicia depois que o `db` estiver saudável
+
+A API fica disponível em `http://localhost:8080`. As migrations do Flyway rodam automaticamente na inicialização do container da API, exatamente como na execução local — nenhum passo manual adicional é necessário.
+
+Para verificar se a API está pronta:
+
+```bash
+curl http://localhost:8080/actuator/health
+```
+
+Para derrubar o ambiente:
+
+```bash
+docker compose down
+```
+
+> Nunca commite o arquivo `.env` com valores reais — apenas `.env.example` (com placeholders) é versionado.
+
+---
+
 # Documentação da API (OpenAPI / Swagger)
 
 A API expõe documentação OpenAPI 3 gerada automaticamente via **springdoc-openapi**.
@@ -1566,13 +1612,12 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Dashboard (resumo, financeiro, operacional), sempre restrito ao tenant autenticado
 - [x] Documentação OpenAPI / Swagger UI, com autenticação Bearer JWT configurada
 - [x] Health check via Spring Boot Actuator (`/actuator/health`, único endpoint exposto)
+- [x] Containerização com Dockerfile multi-stage e Docker Compose (API + PostgreSQL)
 
 ## Próximas etapas
 
 - [ ] Testes dedicados de isolamento multi-tenant para `UsuarioService` (a lógica já está correta;
   falta cobertura de teste — ver `chore/backend-hardening`)
-- [ ] Docker
-- [ ] Docker Compose
 - [ ] CI/CD com GitHub Actions
 - [ ] Frontend com Angular
 
