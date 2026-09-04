@@ -26,6 +26,8 @@ O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot,
 - JWT
 - BCrypt
 - Flyway
+- OpenAPI / Swagger (springdoc-openapi)
+- Spring Boot Actuator (health check)
 
 ### Testes
 
@@ -36,7 +38,6 @@ O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot,
 
 ### Planejadas
 
-- OpenAPI / Swagger
 - Docker
 - Docker Compose
 - GitHub Actions
@@ -1428,6 +1429,41 @@ http://localhost:8080
 
 ---
 
+# Documentação da API (OpenAPI / Swagger)
+
+A API expõe documentação OpenAPI 3 gerada automaticamente via **springdoc-openapi**.
+
+```text
+Swagger UI  → http://localhost:8080/swagger-ui.html
+JSON OpenAPI → http://localhost:8080/v3/api-docs
+```
+
+Ambos os endpoints são públicos (não exigem autenticação), já que servem apenas para expor o *schema*
+da API — nenhum dado de negócio é retornado por eles. Essa é uma escolha consciente para facilitar a
+integração do frontend e de ferramentas de desenvolvimento; a contrapartida é que qualquer pessoa com
+acesso à rede da aplicação consegue ver o formato dos endpoints (não os dados).
+
+Para testar endpoints autenticados diretamente pelo Swagger UI:
+
+1. Chame `POST /auth/login` (ou `POST /auth/register-company`) para obter um JWT.
+2. Clique em **Authorize** no Swagger UI e informe `Bearer <token>`.
+3. As demais chamadas passam a incluir o header `Authorization` automaticamente.
+
+---
+
+# Health Check
+
+A aplicação expõe um health check via **Spring Boot Actuator**, restrito propositalmente a esse único
+endpoint (nenhuma outra rota do Actuator é exposta, para não vazar configuração interna):
+
+```text
+GET /actuator/health
+```
+
+Endpoint público, usado como *liveness probe* por orquestradores/monitoramento.
+
+---
+
 # Práticas aplicadas no projeto
 
 Até o momento, o projeto utiliza conceitos como:
@@ -1528,12 +1564,13 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Endpoints primários `GET /orcamentos` e `GET /pagamentos`
 - [x] Índices de banco para os novos filtros e chaves estrangeiras mais usadas em joins
 - [x] Dashboard (resumo, financeiro, operacional), sempre restrito ao tenant autenticado
+- [x] Documentação OpenAPI / Swagger UI, com autenticação Bearer JWT configurada
+- [x] Health check via Spring Boot Actuator (`/actuator/health`, único endpoint exposto)
 
 ## Próximas etapas
 
 - [ ] Testes dedicados de isolamento multi-tenant para `UsuarioService` (a lógica já está correta;
   falta cobertura de teste — ver `chore/backend-hardening`)
-- [ ] OpenAPI / Swagger
 - [ ] Docker
 - [ ] Docker Compose
 - [ ] CI/CD com GitHub Actions
