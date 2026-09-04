@@ -1003,7 +1003,33 @@ Orçamento
 Empresa
 ```
 
-Os usuários já possuem vínculo com `Empresa`. A revisão final do isolamento das operações administrativas de `UsuarioService` é a próxima etapa de segurança antes de avançar para novas funcionalidades.
+Os usuários já possuem vínculo com `Empresa`. O isolamento das operações administrativas de
+`UsuarioService` está coberto por testes dedicados de multi-tenancy e de autorização por perfil.
+
+---
+
+# Hardening de Segurança
+
+Uma auditoria completa do backend (repositories, services, `SecurityConfig`, `JwtAuthFilter`,
+constraints de schema) foi realizada antes de avançar para a versão V1. Principais resultados:
+
+- **Consultas globais**: nenhum uso indevido de `findAll()`/`findById()`/`existsById()` (genéricos,
+  não filtrados por tenant) foi encontrado em nenhum service — todas as consultas por ID já usam a
+  variante `findByIdAndEmpresa_Id` (ou o equivalente via relacionamento, como
+  `findByIdAndOrcamento_Empresa_Id` em `Pagamento`).
+- **Empresa inativa não opera**: uma empresa com `ativo = false` agora bloqueia login
+  (`AuthService`) e invalida qualquer token JWT já emitido para usuários dela (`JwtAuthFilter`) — o
+  JWT é stateless, então essa verificação a cada requisição é o que impede um token emitido antes da
+  desativação de continuar funcionando.
+- **Nunca ficar sem ADMIN ativo**: `UsuarioService.inativar` impede que o último `ADMIN` ativo de uma
+  empresa seja inativado, evitando que uma empresa fique administrativamente órfã.
+- **CORS**: configurado via `app.cors.allowed-origins` (variável de ambiente
+  `CORS_ALLOWED_ORIGINS`), nunca com `*`. O padrão local aponta para `http://localhost:4200` (Angular
+  dev server). A API usa Bearer JWT (sem cookies), então `allowCredentials` fica desligado.
+- **Índices de schema**: as tabelas de histórico (`ordem_servico_historico`,
+  `ordem_servico_diagnostico_historico`, `orcamento_historico`, `pagamento_historico`,
+  `agendamento_historico`) e `orcamento_item` são sempre consultadas pela FK do registro "pai", mas
+  nunca haviam ganhado índice nessa coluna — corrigido via `V13`.
 
 ---
 
@@ -1634,11 +1660,14 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Health check via Spring Boot Actuator (`/actuator/health`, único endpoint exposto)
 - [x] Containerização com Dockerfile multi-stage e Docker Compose (API + PostgreSQL)
 - [x] CI/CD com GitHub Actions (`clean test` + `build` em PR e push para `main`)
+- [x] Testes dedicados de isolamento multi-tenant e autorização para `UsuarioService`
+- [x] Bloqueio de operações para empresa inativa (login e requisições autenticadas)
+- [x] Regra para nunca remover o último `ADMIN` ativo de uma empresa
+- [x] Configuração de CORS para o futuro frontend Angular
+- [x] Índices de FK ausentes em tabelas de histórico e itens de orçamento
 
 ## Próximas etapas
 
-- [ ] Testes dedicados de isolamento multi-tenant para `UsuarioService` (a lógica já está correta;
-  falta cobertura de teste — ver `chore/backend-hardening`)
 - [ ] Frontend com Angular
 
 ---
