@@ -1699,7 +1699,7 @@ Além de desenvolver uma aplicação funcional para gestão de serviços de clim
 
 # Status
 
-🚧 **Projeto em desenvolvimento**
+✅ **Backend V1 concluído** — pronto para integração com o frontend Angular
 
 Atualmente, o backend já cobre o fluxo principal de atendimento e financeiro:
 
@@ -1743,4 +1743,4 @@ Isolamento multi-tenant
 
 O backend também utiliza **Flyway** para versionamento do banco e uma suíte de testes com **JUnit 5, Mockito e Testcontainers**, executando cenários de integração contra PostgreSQL real em container.
 
-Agenda de atendimentos, manutenção preventiva, paginação/filtros nos endpoints principais, dashboard, documentação OpenAPI/Swagger, containerização com Docker e CI com GitHub Actions já estão implementados. A próxima etapa é testes dedicados de isolamento multi-tenant para `UsuarioService`, seguida do frontend com Angular.
+Agenda de atendimentos, manutenção preventiva, paginação/filtros nos endpoints principais, dashboard, documentação OpenAPI/Swagger, containerização com Docker, CI com GitHub Actions e uma auditoria completa de segurança e isolamento multi-tenant (incluindo bloqueio de empresa inativa, proteção contra ficar sem `ADMIN` ativo e CORS configurável) já estão implementados. A próxima etapa é o frontend com Angular.
