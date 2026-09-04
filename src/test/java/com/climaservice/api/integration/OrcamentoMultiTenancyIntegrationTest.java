@@ -533,6 +533,44 @@ class OrcamentoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
         assertEquals(6001L, resultado.ordemServicoId());
     }
 
+    @Test
+    void deveListarSomenteOrcamentosDaEmpresaAutenticada() {
+
+        PageResponseDTO<OrcamentoResponseDTO> resultado = orcamentoService.listar(null, null, null, 0, 20);
+
+        assertEquals(1, resultado.totalElements());
+
+        assertEquals(7201L, resultado.content().get(0).id());
+
+        assertTrue(resultado.content().stream().noneMatch(o -> o.id().equals(7202L)));
+    }
+
+    @Test
+    void deveFiltrarOrcamentosPorStatus() {
+
+        assertEquals(1, orcamentoService.listar(StatusOrcamento.RASCUNHO, null, null, 0, 20).totalElements());
+
+        assertEquals(0, orcamentoService.listar(StatusOrcamento.APROVADO, null, null, 0, 20).totalElements());
+    }
+
+    @Test
+    void devePaginarOrcamentosDaEmpresaAutenticada() {
+
+        OrcamentoRequestDTO dto = mock(OrcamentoRequestDTO.class);
+
+        when(dto.observacao()).thenReturn("Segundo orçamento da Empresa A");
+
+        orcamentoService.criar(5001L, dto);
+
+        PageResponseDTO<OrcamentoResponseDTO> primeiraPagina = orcamentoService.listar(null, null, null, 0, 1);
+
+        assertEquals(1, primeiraPagina.content().size());
+
+        assertEquals(2, primeiraPagina.totalElements());
+
+        assertEquals(2, primeiraPagina.totalPages());
+    }
+
     private void autenticar(String email, String role) {
 
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));

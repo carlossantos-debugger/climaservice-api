@@ -95,7 +95,7 @@ Permite gerenciar os clientes atendidos pela empresa.
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/clientes` | Cadastrar cliente |
-| GET | `/clientes` | Listar clientes |
+| GET | `/clientes` | Listar clientes (paginado), com filtros opcionais `nome` (contém, sem diferenciar maiúsculas/minúsculas) e `cpfCnpj` (exato) |
 | GET | `/clientes/{id}` | Buscar cliente por ID |
 | PUT | `/clientes/{id}` | Atualizar cliente |
 | DELETE | `/clientes/{id}` | Excluir cliente |
@@ -162,7 +162,7 @@ INATIVO
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/equipamentos` | Cadastrar equipamento |
-| GET | `/equipamentos` | Listar equipamentos |
+| GET | `/equipamentos` | Listar equipamentos (paginado), com filtros opcionais `clienteId`, `status`, `marca` e `modelo` (contém) |
 | GET | `/equipamentos/{id}` | Buscar equipamento |
 | PUT | `/equipamentos/{id}` | Atualizar equipamento |
 | GET | `/clientes/{clienteId}/equipamentos` | Equipamentos do cliente |
@@ -248,7 +248,7 @@ CANCELADA
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/ordens-servico` | Abrir OS |
-| GET | `/ordens-servico` | Listar OS |
+| GET | `/ordens-servico` | Listar OS (paginado), com filtros opcionais `status`, `clienteId`, `equipamentoId`, `dataInicial`/`dataFinal` (sobre a data de abertura) |
 | GET | `/ordens-servico/{id}` | Buscar OS |
 | GET | `/clientes/{clienteId}/ordens-servico` | OS de um cliente |
 | GET | `/equipamentos/{equipamentoId}/ordens-servico` | Histórico de OS do equipamento |
@@ -361,7 +361,7 @@ CANCELADO
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/agendamentos` | Criar agendamento (`ADMIN`, `ATENDENTE`) |
-| GET | `/agendamentos` | Listar agendamentos da empresa, com filtros opcionais (`dataInicial`, `dataFinal`, `tecnicoId`, `status`) |
+| GET | `/agendamentos` | Listar agendamentos da empresa (paginado), com filtros opcionais (`dataInicial`, `dataFinal`, `tecnicoId`, `status`) |
 | GET | `/agendamentos/{id}` | Buscar agendamento por ID |
 | PATCH | `/agendamentos/{id}/status` | Alterar status (`ADMIN`, `TECNICO`) |
 | PATCH | `/agendamentos/{id}/reagendar` | Alterar data/hora do agendamento (`ADMIN`, `ATENDENTE`) |
@@ -595,6 +595,7 @@ RASCUNHO
 |---|---|---|
 | POST | `/ordens-servico/{ordemServicoId}/orcamentos` | Criar orçamento |
 | GET | `/ordens-servico/{ordemServicoId}/orcamentos` | Listar orçamentos da OS |
+| GET | `/orcamentos` | Listar orçamentos da empresa (paginado), com filtros opcionais `status`, `dataInicial`/`dataFinal` (sobre a data de criação) |
 | GET | `/orcamentos/{id}` | Buscar orçamento |
 | PATCH | `/orcamentos/{id}/status` | Alterar status |
 | GET | `/orcamentos/{orcamentoId}/itens` | Listar itens |
@@ -800,6 +801,7 @@ O backend calcula informações como:
 |---|---|---|
 | POST | `/orcamentos/{orcamentoId}/pagamentos` | Registrar pagamento |
 | GET | `/orcamentos/{orcamentoId}/pagamentos` | Listar pagamentos do orçamento |
+| GET | `/pagamentos` | Listar pagamentos da empresa (paginado), com filtros opcionais `status`, `formaPagamento`, `dataInicial`/`dataFinal` (sobre a data de criação) |
 | GET | `/orcamentos/{orcamentoId}/pagamentos/resumo` | Consultar resumo financeiro |
 | GET | `/pagamentos/{id}` | Buscar pagamento por ID |
 | PATCH | `/pagamentos/{id}/confirmar` | Confirmar pagamento |
@@ -994,6 +996,34 @@ Empresa
 ```
 
 Os usuários já possuem vínculo com `Empresa`. A revisão final do isolamento das operações administrativas de `UsuarioService` é a próxima etapa de segurança antes de avançar para novas funcionalidades.
+
+---
+
+# Paginação
+
+Os endpoints de listagem principal (`GET /clientes`, `GET /equipamentos`, `GET /ordens-servico`,
+`GET /orcamentos`, `GET /pagamentos`, `GET /agendamentos`) nunca retornam listas ilimitadas. Todos
+aceitam os parâmetros opcionais `page` (padrão `0`) e `size` (padrão `20`), além dos filtros
+específicos de cada módulo documentados na respectiva seção, e sempre permanecem restritos à empresa
+do usuário autenticado.
+
+A resposta é um envelope padrão, desacoplado da estrutura interna do Spring Data:
+
+```json
+{
+  "content": [ ],
+  "pageNumber": 0,
+  "pageSize": 20,
+  "totalElements": 0,
+  "totalPages": 0,
+  "first": true,
+  "last": true
+}
+```
+
+Endpoints de listagem aninhada ou de detalhe (por exemplo, `GET /clientes/{id}/equipamentos`,
+`GET /ordens-servico/{id}/orcamentos`, `GET /orcamentos/{id}/itens`) continuam retornando uma lista
+simples — a paginação se aplica às listagens principais, que são as que podem crescer sem limite.
 
 ---
 
@@ -1451,12 +1481,14 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Planos de manutenção preventiva por equipamento
 - [x] Geração idempotente de Ordem de Serviço a partir de plano preventivo vencido
 - [x] Histórico de execuções de manutenção preventiva
+- [x] Paginação e filtros nos endpoints principais (`PageResponseDTO`)
+- [x] Endpoints primários `GET /orcamentos` e `GET /pagamentos`
+- [x] Índices de banco para os novos filtros e chaves estrangeiras mais usadas em joins
 
 ## Próximas etapas
 
 - [ ] Testes dedicados de isolamento multi-tenant para `UsuarioService` (a lógica já está correta;
   falta cobertura de teste — ver `chore/backend-hardening`)
-- [ ] Paginação e filtros nos endpoints principais
 - [ ] Dashboard e relatórios
 - [ ] OpenAPI / Swagger
 - [ ] Docker

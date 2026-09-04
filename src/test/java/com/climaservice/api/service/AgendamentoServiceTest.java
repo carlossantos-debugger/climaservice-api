@@ -4,6 +4,7 @@ import com.climaservice.api.dto.AgendamentoReagendarRequestDTO;
 import com.climaservice.api.dto.AgendamentoRequestDTO;
 import com.climaservice.api.dto.AgendamentoResponseDTO;
 import com.climaservice.api.dto.AtualizarStatusAgendamentoRequestDTO;
+import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.entity.*;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
@@ -19,7 +20,9 @@ import org.mockito.Mock;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
@@ -512,12 +515,12 @@ class AgendamentoServiceTest {
 
         when(agendamento.getStatus()).thenReturn(StatusAgendamento.AGENDADO);
 
-        when(agendamentoRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(agendamento));
+        when(agendamentoRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(agendamento)));
 
-        List<AgendamentoResponseDTO> resultado = agendamentoService.listar(inicio, fim, 2L, StatusAgendamento.AGENDADO);
+        PageResponseDTO<AgendamentoResponseDTO> resultado = agendamentoService.listar(inicio, fim, 2L, StatusAgendamento.AGENDADO, 0, 20);
 
-        assertEquals(1, resultado.size());
+        assertEquals(1, resultado.content().size());
 
-        assertEquals(2L, resultado.get(0).tecnicoId());
+        assertEquals(2L, resultado.content().get(0).tecnicoId());
     }
 }
