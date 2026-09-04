@@ -1,7 +1,6 @@
 package com.climaservice.api.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 @Entity
@@ -11,7 +10,6 @@ public class Cliente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Getter
     @Column(nullable = false, length = 150)
     private String nome;
 

@@ -1,5 +1,7 @@
 # ClimaService API
 
+[![Backend CI](https://github.com/carlossantos-debugger/climaservice-api/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/carlossantos-debugger/climaservice-api/actions/workflows/backend-ci.yml)
+
 API REST para gerenciamento de serviços de climatização e manutenção de ar-condicionado.
 
 O **ClimaService** está sendo desenvolvido como um projeto SaaS voltado para empresas e profissionais que trabalham com instalação, manutenção preventiva e manutenção corretiva de equipamentos de climatização.
@@ -26,6 +28,8 @@ O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot,
 - JWT
 - BCrypt
 - Flyway
+- OpenAPI / Swagger (springdoc-openapi)
+- Spring Boot Actuator (health check)
 
 ### Testes
 
@@ -34,12 +38,14 @@ O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot,
 - Testcontainers
 - PostgreSQL real em container para testes de integração
 
-### Planejadas
+### Infraestrutura e CI/CD
 
-- OpenAPI / Swagger
 - Docker
 - Docker Compose
 - GitHub Actions
+
+### Planejadas
+
 - Angular
 
 ---
@@ -53,6 +59,7 @@ Atualmente, a API possui os seguintes módulos:
 - Ordens de Serviço
 - Histórico de Ordens de Serviço
 - Agenda de Atendimentos
+- Manutenção Preventiva
 - Catálogo de Serviços
 - Orçamentos
 - Itens de Orçamento
@@ -61,6 +68,8 @@ Atualmente, a API possui os seguintes módulos:
 - Usuários
 - Autenticação e Autorização
 - Empresas e contexto de tenant
+- Paginação e filtros nos endpoints principais
+- Dashboard (resumo, financeiro, operacional)
 - Migrações versionadas com Flyway
 - Testes unitários e de integração
 
@@ -94,7 +103,7 @@ Permite gerenciar os clientes atendidos pela empresa.
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/clientes` | Cadastrar cliente |
-| GET | `/clientes` | Listar clientes |
+| GET | `/clientes` | Listar clientes (paginado), com filtros opcionais `nome` (contém, sem diferenciar maiúsculas/minúsculas) e `cpfCnpj` (exato) |
 | GET | `/clientes/{id}` | Buscar cliente por ID |
 | PUT | `/clientes/{id}` | Atualizar cliente |
 | DELETE | `/clientes/{id}` | Excluir cliente |
@@ -161,7 +170,7 @@ INATIVO
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/equipamentos` | Cadastrar equipamento |
-| GET | `/equipamentos` | Listar equipamentos |
+| GET | `/equipamentos` | Listar equipamentos (paginado), com filtros opcionais `clienteId`, `status`, `marca` e `modelo` (contém) |
 | GET | `/equipamentos/{id}` | Buscar equipamento |
 | PUT | `/equipamentos/{id}` | Atualizar equipamento |
 | GET | `/clientes/{clienteId}/equipamentos` | Equipamentos do cliente |
@@ -247,7 +256,7 @@ CANCELADA
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/ordens-servico` | Abrir OS |
-| GET | `/ordens-servico` | Listar OS |
+| GET | `/ordens-servico` | Listar OS (paginado), com filtros opcionais `status`, `clienteId`, `equipamentoId`, `dataInicial`/`dataFinal` (sobre a data de abertura) |
 | GET | `/ordens-servico/{id}` | Buscar OS |
 | GET | `/clientes/{clienteId}/ordens-servico` | OS de um cliente |
 | GET | `/equipamentos/{equipamentoId}/ordens-servico` | Histórico de OS do equipamento |
@@ -360,13 +369,73 @@ CANCELADO
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/agendamentos` | Criar agendamento (`ADMIN`, `ATENDENTE`) |
-| GET | `/agendamentos` | Listar agendamentos da empresa, com filtros opcionais (`dataInicial`, `dataFinal`, `tecnicoId`, `status`) |
+| GET | `/agendamentos` | Listar agendamentos da empresa (paginado), com filtros opcionais (`dataInicial`, `dataFinal`, `tecnicoId`, `status`) |
 | GET | `/agendamentos/{id}` | Buscar agendamento por ID |
 | PATCH | `/agendamentos/{id}/status` | Alterar status (`ADMIN`, `TECNICO`) |
 | PATCH | `/agendamentos/{id}/reagendar` | Alterar data/hora do agendamento (`ADMIN`, `ATENDENTE`) |
 | GET | `/agendamentos/{id}/historico` | Consultar histórico de status |
 | GET | `/tecnicos/{tecnicoId}/agendamentos` | Agenda de um técnico |
 | GET | `/ordens-servico/{ordemServicoId}/agendamentos` | Agendamentos de uma ordem de serviço |
+
+---
+
+# Manutenção Preventiva
+
+Cada equipamento pode possuir um ou mais planos de manutenção preventiva, que definem a periodicidade
+das visitas e permitem gerar automaticamente uma nova Ordem de Serviço quando a manutenção vence.
+
+```text
+Equipamento
+   ↓
+PlanoManutencaoPreventiva
+   ├── Técnico padrão (opcional)
+   ├── Intervalo em meses
+   ├── Próxima execução / última execução
+   └── Execuções (histórico de OS geradas)
+```
+
+### Dados principais
+
+- ID
+- Equipamento
+- Técnico padrão (opcional)
+- Intervalo em meses
+- Próxima execução
+- Última execução
+- Ativo
+- Observação
+- Data de criação
+
+### Regras de negócio
+
+- O equipamento informado precisa pertencer à empresa autenticada e estar `ATIVO`.
+- O técnico padrão (quando informado) precisa pertencer à empresa autenticada, possuir o perfil `TECNICO` e estar ativo.
+- O intervalo em meses deve ser maior que zero.
+- Quando a próxima execução não é informada na criação, o backend calcula automaticamente como
+  `hoje + intervaloMeses`.
+- Um plano inativo ou vinculado a um equipamento inativo não pode gerar novas Ordens de Serviço.
+- A geração de OS só é permitida quando a próxima execução já venceu (`proximaExecucao <= hoje`).
+- **A geração de OS é idempotente**: cada ocorrência (plano + data de referência) só pode gerar uma
+  única Ordem de Serviço. Após gerar, o backend avança automaticamente `ultimaExecucao` e
+  `proximaExecucao` (`proximaExecucao + intervaloMeses`), impedindo que a mesma ocorrência seja
+  processada novamente. A constraint única `(plano, data_referencia)` no banco garante essa regra
+  mesmo sob execução concorrente.
+- A criação da Ordem de Serviço reutiliza as mesmas validações do fluxo manual de abertura de OS.
+
+### Endpoints
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| POST | `/planos-manutencao-preventiva` | Criar plano (`ADMIN`, `ATENDENTE`) |
+| GET | `/planos-manutencao-preventiva` | Listar planos da empresa, com filtros opcionais (`equipamentoId`, `ativo`) |
+| GET | `/planos-manutencao-preventiva/proximas` | Listar planos ativos com vencimento nos próximos `diasLimite` dias (padrão 30) |
+| GET | `/planos-manutencao-preventiva/{id}` | Buscar plano por ID |
+| PUT | `/planos-manutencao-preventiva/{id}` | Atualizar plano (`ADMIN`, `ATENDENTE`) |
+| PATCH | `/planos-manutencao-preventiva/{id}/ativar` | Ativar plano (`ADMIN`, `ATENDENTE`) |
+| PATCH | `/planos-manutencao-preventiva/{id}/inativar` | Inativar plano (`ADMIN`, `ATENDENTE`) |
+| POST | `/planos-manutencao-preventiva/{id}/gerar-ordem-servico` | Gerar OS preventiva (`ADMIN`, `ATENDENTE`) |
+| GET | `/planos-manutencao-preventiva/{id}/execucoes` | Histórico de execuções (OS geradas) do plano |
+| GET | `/equipamentos/{equipamentoId}/planos-manutencao-preventiva` | Planos de manutenção de um equipamento |
 
 ---
 
@@ -534,6 +603,7 @@ RASCUNHO
 |---|---|---|
 | POST | `/ordens-servico/{ordemServicoId}/orcamentos` | Criar orçamento |
 | GET | `/ordens-servico/{ordemServicoId}/orcamentos` | Listar orçamentos da OS |
+| GET | `/orcamentos` | Listar orçamentos da empresa (paginado), com filtros opcionais `status`, `dataInicial`/`dataFinal` (sobre a data de criação) |
 | GET | `/orcamentos/{id}` | Buscar orçamento |
 | PATCH | `/orcamentos/{id}/status` | Alterar status |
 | GET | `/orcamentos/{orcamentoId}/itens` | Listar itens |
@@ -739,6 +809,7 @@ O backend calcula informações como:
 |---|---|---|
 | POST | `/orcamentos/{orcamentoId}/pagamentos` | Registrar pagamento |
 | GET | `/orcamentos/{orcamentoId}/pagamentos` | Listar pagamentos do orçamento |
+| GET | `/pagamentos` | Listar pagamentos da empresa (paginado), com filtros opcionais `status`, `formaPagamento`, `dataInicial`/`dataFinal` (sobre a data de criação) |
 | GET | `/orcamentos/{orcamentoId}/pagamentos/resumo` | Consultar resumo financeiro |
 | GET | `/pagamentos/{id}` | Buscar pagamento por ID |
 | PATCH | `/pagamentos/{id}/confirmar` | Confirmar pagamento |
@@ -932,7 +1003,102 @@ Orçamento
 Empresa
 ```
 
-Os usuários já possuem vínculo com `Empresa`. A revisão final do isolamento das operações administrativas de `UsuarioService` é a próxima etapa de segurança antes de avançar para novas funcionalidades.
+Os usuários já possuem vínculo com `Empresa`. O isolamento das operações administrativas de
+`UsuarioService` está coberto por testes dedicados de multi-tenancy e de autorização por perfil.
+
+---
+
+# Hardening de Segurança
+
+Uma auditoria completa do backend (repositories, services, `SecurityConfig`, `JwtAuthFilter`,
+constraints de schema) foi realizada antes de avançar para a versão V1. Principais resultados:
+
+- **Consultas globais**: nenhum uso indevido de `findAll()`/`findById()`/`existsById()` (genéricos,
+  não filtrados por tenant) foi encontrado em nenhum service — todas as consultas por ID já usam a
+  variante `findByIdAndEmpresa_Id` (ou o equivalente via relacionamento, como
+  `findByIdAndOrcamento_Empresa_Id` em `Pagamento`).
+- **Empresa inativa não opera**: uma empresa com `ativo = false` agora bloqueia login
+  (`AuthService`) e invalida qualquer token JWT já emitido para usuários dela (`JwtAuthFilter`) — o
+  JWT é stateless, então essa verificação a cada requisição é o que impede um token emitido antes da
+  desativação de continuar funcionando.
+- **Nunca ficar sem ADMIN ativo**: `UsuarioService.inativar` impede que o último `ADMIN` ativo de uma
+  empresa seja inativado, evitando que uma empresa fique administrativamente órfã.
+- **CORS**: configurado via `app.cors.allowed-origins` (variável de ambiente
+  `CORS_ALLOWED_ORIGINS`), nunca com `*`. O padrão local aponta para `http://localhost:4200` (Angular
+  dev server). A API usa Bearer JWT (sem cookies), então `allowCredentials` fica desligado.
+- **Índices de schema**: as tabelas de histórico (`ordem_servico_historico`,
+  `ordem_servico_diagnostico_historico`, `orcamento_historico`, `pagamento_historico`,
+  `agendamento_historico`) e `orcamento_item` são sempre consultadas pela FK do registro "pai", mas
+  nunca haviam ganhado índice nessa coluna — corrigido via `V13`.
+
+---
+
+# Paginação
+
+Os endpoints de listagem principal (`GET /clientes`, `GET /equipamentos`, `GET /ordens-servico`,
+`GET /orcamentos`, `GET /pagamentos`, `GET /agendamentos`) nunca retornam listas ilimitadas. Todos
+aceitam os parâmetros opcionais `page` (padrão `0`) e `size` (padrão `20`), além dos filtros
+específicos de cada módulo documentados na respectiva seção, e sempre permanecem restritos à empresa
+do usuário autenticado.
+
+A resposta é um envelope padrão, desacoplado da estrutura interna do Spring Data:
+
+```json
+{
+  "content": [ ],
+  "pageNumber": 0,
+  "pageSize": 20,
+  "totalElements": 0,
+  "totalPages": 0,
+  "first": true,
+  "last": true
+}
+```
+
+Endpoints de listagem aninhada ou de detalhe (por exemplo, `GET /clientes/{id}/equipamentos`,
+`GET /ordens-servico/{id}/orcamentos`, `GET /orcamentos/{id}/itens`) continuam retornando uma lista
+simples — a paginação se aplica às listagens principais, que são as que podem crescer sem limite.
+
+---
+
+# Dashboard
+
+Endpoints de leitura com métricas agregadas, sempre restritas à empresa do usuário autenticado —
+nenhuma métrica combina dados de tenants diferentes. Acessíveis por qualquer perfil autenticado.
+
+### `GET /dashboard/resumo`
+
+| Métrica | Descrição |
+|---|---|
+| `clientesAtivos` | Total de clientes cadastrados na empresa. `Cliente` não possui um campo de status/ativo, então esta métrica reflete o total de clientes. |
+| `equipamentosAtivos` | Equipamentos com status `ATIVO` |
+| `ordensAbertas` | Ordens de serviço com status `ABERTA` |
+| `ordensEmAndamento` | Ordens de serviço com status `EM_ANDAMENTO` |
+| `orcamentosPendentes` | Orçamentos com status `ENVIADO` (aguardando decisão do cliente — `RASCUNHO` ainda não foi enviado, portanto não é considerado pendente) |
+| `agendamentosHoje` | Agendamentos com início hoje, exceto `CANCELADO` |
+| `receitaConfirmadaNoMes` | Soma de `Pagamento.valor` com status `CONFIRMADO` e confirmação no mês corrente |
+
+### `GET /dashboard/financeiro`
+
+| Métrica | Descrição |
+|---|---|
+| `valorRecebido` | Soma de todos os pagamentos `CONFIRMADO` (todo o período) |
+| `valorPendente` | Soma de todos os pagamentos `PENDENTE` |
+| `ticketMedio` | Valor total médio dos orçamentos `APROVADO` |
+| `quantidadeOrcamentosAprovados` | Quantidade de orçamentos `APROVADO` |
+
+### `GET /dashboard/operacional`
+
+| Métrica | Descrição |
+|---|---|
+| `osPorStatus` | Contagem de ordens de serviço agrupada por cada status possível |
+| `osConcluidas` | Ordens de serviço com status `CONCLUIDA` |
+| `osCanceladas` | Ordens de serviço com status `CANCELADA` |
+| `proximosAgendamentos` | Agendamentos ativos (exclui `CANCELADO`/`CONCLUIDO`) nos próximos 7 dias, até 10 itens |
+| `manutencoesPreventivasProximas` | Reaproveita `GET /planos-manutencao-preventiva/proximas` (30 dias) |
+
+Todas as consultas são resolvidas a partir da empresa do usuário autenticado — nenhum parâmetro de
+requisição seleciona o tenant.
 
 ---
 
@@ -1136,18 +1302,20 @@ Empresa
 │
 ├── Cliente
 │    └── Equipamento
-│         └── OrdemServico
-│              ├── OrdemServicoHistorico
-│              ├── OrdemServicoDiagnosticoHistorico
-│              ├── Agendamento
-│              │    └── AgendamentoHistorico
-│              └── Orcamento
-│                   ├── OrcamentoHistorico
-│                   ├── OrcamentoItem
-│                   │    ├── Servico
-│                   │    └── Produto
-│                   └── Pagamento
-│                        └── PagamentoHistorico
+│         ├── OrdemServico
+│         │    ├── OrdemServicoHistorico
+│         │    ├── OrdemServicoDiagnosticoHistorico
+│         │    ├── Agendamento
+│         │    │    └── AgendamentoHistorico
+│         │    └── Orcamento
+│         │         ├── OrcamentoHistorico
+│         │         ├── OrcamentoItem
+│         │         │    ├── Servico
+│         │         │    └── Produto
+│         │         └── Pagamento
+│         │              └── PagamentoHistorico
+│         └── PlanoManutencaoPreventiva
+│              └── PlanoManutencaoPreventivaExecucao
 │
 ├── Servico
 └── Produto
@@ -1292,6 +1460,102 @@ http://localhost:8080
 
 ---
 
+# Docker
+
+O projeto também pode ser executado inteiramente via Docker, sem precisar instalar JDK ou PostgreSQL localmente.
+
+## Pré-requisitos
+
+- Docker
+- Docker Compose (já incluso no Docker Desktop)
+
+## Subindo o ambiente
+
+Copie o arquivo de exemplo de variáveis de ambiente e preencha com valores reais:
+
+```bash
+cp .env.example .env
+```
+
+Suba a API e o PostgreSQL:
+
+```bash
+docker compose up --build
+```
+
+O Compose sobe dois serviços:
+
+- `db`: PostgreSQL, com volume persistente e healthcheck (`pg_isready`)
+- `api`: build multi-stage a partir do `Dockerfile` (JDK 21 para build, JRE 21 Alpine no runtime, usuário não-root), só inicia depois que o `db` estiver saudável
+
+A API fica disponível em `http://localhost:8080`. As migrations do Flyway rodam automaticamente na inicialização do container da API, exatamente como na execução local — nenhum passo manual adicional é necessário.
+
+Para verificar se a API está pronta:
+
+```bash
+curl http://localhost:8080/actuator/health
+```
+
+Para derrubar o ambiente:
+
+```bash
+docker compose down
+```
+
+> Nunca commite o arquivo `.env` com valores reais — apenas `.env.example` (com placeholders) é versionado.
+
+---
+
+# CI/CD
+
+O projeto possui integração contínua via **GitHub Actions** (`.github/workflows/backend-ci.yml`), executada em todo Pull Request para `main` e em todo push em `main`.
+
+O pipeline:
+
+1. Faz checkout do código
+2. Configura o JDK 21 (Temurin), com cache de dependências do Gradle
+3. Executa `./gradlew clean test`
+4. Executa `./gradlew build`
+
+Os testes de integração usam Testcontainers para subir um PostgreSQL real e descartável durante a execução — os runners `ubuntu-latest` do GitHub já vêm com Docker disponível, então nenhuma configuração adicional é necessária. Nenhuma credencial real é usada: os testes utilizam um segredo JWT fixo apenas para teste e um banco descartável, então o workflow não depende de nenhum `secrets.*` do repositório.
+
+---
+
+# Documentação da API (OpenAPI / Swagger)
+
+A API expõe documentação OpenAPI 3 gerada automaticamente via **springdoc-openapi**.
+
+```text
+Swagger UI  → http://localhost:8080/swagger-ui.html
+JSON OpenAPI → http://localhost:8080/v3/api-docs
+```
+
+Ambos os endpoints são públicos (não exigem autenticação), já que servem apenas para expor o *schema*
+da API — nenhum dado de negócio é retornado por eles. Essa é uma escolha consciente para facilitar a
+integração do frontend e de ferramentas de desenvolvimento; a contrapartida é que qualquer pessoa com
+acesso à rede da aplicação consegue ver o formato dos endpoints (não os dados).
+
+Para testar endpoints autenticados diretamente pelo Swagger UI:
+
+1. Chame `POST /auth/login` (ou `POST /auth/register-company`) para obter um JWT.
+2. Clique em **Authorize** no Swagger UI e informe `Bearer <token>`.
+3. As demais chamadas passam a incluir o header `Authorization` automaticamente.
+
+---
+
+# Health Check
+
+A aplicação expõe um health check via **Spring Boot Actuator**, restrito propositalmente a esse único
+endpoint (nenhuma outra rota do Actuator é exposta, para não vazar configuração interna):
+
+```text
+GET /actuator/health
+```
+
+Endpoint público, usado como *liveness probe* por orquestradores/monitoramento.
+
+---
+
 # Práticas aplicadas no projeto
 
 Até o momento, o projeto utiliza conceitos como:
@@ -1385,15 +1649,25 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Consulta e atualização dos dados da própria empresa (`GET`/`PATCH /empresa/me`)
 - [x] Agenda de atendimentos, com técnico, workflow de status e histórico
 - [x] Bloqueio de sobreposição de horário por técnico
+- [x] Planos de manutenção preventiva por equipamento
+- [x] Geração idempotente de Ordem de Serviço a partir de plano preventivo vencido
+- [x] Histórico de execuções de manutenção preventiva
+- [x] Paginação e filtros nos endpoints principais (`PageResponseDTO`)
+- [x] Endpoints primários `GET /orcamentos` e `GET /pagamentos`
+- [x] Índices de banco para os novos filtros e chaves estrangeiras mais usadas em joins
+- [x] Dashboard (resumo, financeiro, operacional), sempre restrito ao tenant autenticado
+- [x] Documentação OpenAPI / Swagger UI, com autenticação Bearer JWT configurada
+- [x] Health check via Spring Boot Actuator (`/actuator/health`, único endpoint exposto)
+- [x] Containerização com Dockerfile multi-stage e Docker Compose (API + PostgreSQL)
+- [x] CI/CD com GitHub Actions (`clean test` + `build` em PR e push para `main`)
+- [x] Testes dedicados de isolamento multi-tenant e autorização para `UsuarioService`
+- [x] Bloqueio de operações para empresa inativa (login e requisições autenticadas)
+- [x] Regra para nunca remover o último `ADMIN` ativo de uma empresa
+- [x] Configuração de CORS para o futuro frontend Angular
+- [x] Índices de FK ausentes em tabelas de histórico e itens de orçamento
 
 ## Próximas etapas
 
-- [ ] Revisão final do isolamento multi-tenant no gerenciamento de usuários
-- [ ] Manutenção preventiva
-- [ ] OpenAPI / Swagger
-- [ ] Docker
-- [ ] Docker Compose
-- [ ] CI/CD com GitHub Actions
 - [ ] Frontend com Angular
 
 ---
@@ -1425,7 +1699,7 @@ Além de desenvolver uma aplicação funcional para gestão de serviços de clim
 
 # Status
 
-🚧 **Projeto em desenvolvimento**
+✅ **Backend V1 concluído** — pronto para integração com o frontend Angular
 
 Atualmente, o backend já cobre o fluxo principal de atendimento e financeiro:
 
@@ -1469,4 +1743,4 @@ Isolamento multi-tenant
 
 O backend também utiliza **Flyway** para versionamento do banco e uma suíte de testes com **JUnit 5, Mockito e Testcontainers**, executando cenários de integração contra PostgreSQL real em container.
 
-A próxima etapa é concluir a revisão de isolamento do `UsuarioService`. Depois disso, o projeto poderá avançar para agenda de atendimentos, manutenção preventiva, OpenAPI/Swagger, Docker, CI/CD e frontend com Angular.
+Agenda de atendimentos, manutenção preventiva, paginação/filtros nos endpoints principais, dashboard, documentação OpenAPI/Swagger, containerização com Docker, CI com GitHub Actions e uma auditoria completa de segurança e isolamento multi-tenant (incluindo bloqueio de empresa inativa, proteção contra ficar sem `ADMIN` ativo e CORS configurável) já estão implementados. A próxima etapa é o frontend com Angular.

@@ -4,6 +4,8 @@ import com.climaservice.api.dto.PagamentoHistoricoResponseDTO;
 import com.climaservice.api.dto.PagamentoRequestDTO;
 import com.climaservice.api.dto.PagamentoResponseDTO;
 import com.climaservice.api.dto.PagamentoResumoResponseDTO;
+import com.climaservice.api.dto.PageResponseDTO;
+import com.climaservice.api.entity.FormaPagamento;
 import com.climaservice.api.entity.Orcamento;
 import com.climaservice.api.entity.Pagamento;
 import com.climaservice.api.entity.PagamentoHistorico;
@@ -15,7 +17,12 @@ import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.OrcamentoRepository;
 import com.climaservice.api.repository.PagamentoHistoricoRepository;
 import com.climaservice.api.repository.PagamentoRepository;
+import com.climaservice.api.repository.PagamentoSpecifications;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,6 +99,18 @@ public class PagamentoService {
 
             throw new BusinessRuleException("O valor do pagamento ultrapassa o saldo disponível de " + valorDisponivel);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<PagamentoResponseDTO> listar(StatusPagamento status, FormaPagamento formaPagamento, LocalDateTime dataInicial, LocalDateTime dataFinal, int page, int size) {
+
+        Long empresaId = obterEmpresaIdAtual();
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dataCriacao"));
+
+        Page<PagamentoResponseDTO> resultado = pagamentoRepository.findAll(PagamentoSpecifications.comFiltros(empresaId, status, formaPagamento, dataInicial, dataFinal), pageable).map(this::converterParaResponse);
+
+        return PageResponseDTO.from(resultado);
     }
 
     @Transactional(readOnly = true)

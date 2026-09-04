@@ -1,5 +1,6 @@
 package com.climaservice.api.integration;
 
+import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.dto.PagamentoRequestDTO;
 import com.climaservice.api.dto.PagamentoResponseDTO;
 import com.climaservice.api.entity.FormaPagamento;
@@ -298,5 +299,80 @@ class PagamentoServiceIntegrationTest extends AbstractIntegrationTest {
         assertEquals(1, pagamentos.size());
 
         assertEquals(0, new BigDecimal("900.00").compareTo(pagamentos.get(0).getValor()));
+    }
+
+    @Test
+    void deveListarEFiltrarPagamentosComPaginacao() {
+
+        pagamentoService.criar(ORCAMENTO_ID, new PagamentoRequestDTO(new BigDecimal("300.00"), FormaPagamento.PIX, "Pagamento PIX"));
+
+        pagamentoService.criar(ORCAMENTO_ID, new PagamentoRequestDTO(new BigDecimal("200.00"), FormaPagamento.BOLETO, "Pagamento boleto"));
+
+        PageResponseDTO<PagamentoResponseDTO> todos = pagamentoService.listar(null, null, null, null, 0, 20);
+
+        assertEquals(2, todos.totalElements());
+
+        PageResponseDTO<PagamentoResponseDTO> primeiraPagina = pagamentoService.listar(null, null, null, null, 0, 1);
+
+        assertEquals(1, primeiraPagina.content().size());
+
+        assertEquals(2, primeiraPagina.totalPages());
+
+        PageResponseDTO<PagamentoResponseDTO> porFormaPagamento = pagamentoService.listar(null, FormaPagamento.PIX, null, null, 0, 20);
+
+        assertEquals(1, porFormaPagamento.totalElements());
+
+        assertEquals(FormaPagamento.PIX, porFormaPagamento.content().get(0).formaPagamento());
+
+        PageResponseDTO<PagamentoResponseDTO> porStatus = pagamentoService.listar(StatusPagamento.PENDENTE, null, null, null, 0, 20);
+
+        assertEquals(2, porStatus.totalElements());
+    }
+
+    @Test
+    void deveIsolarListagemDePagamentosPorTenant() {
+
+        pagamentoService.criar(ORCAMENTO_ID, new PagamentoRequestDTO(new BigDecimal("100.00"), FormaPagamento.PIX, "Pagamento Empresa A"));
+
+        /*
+         * Seed inline de uma segunda empresa, com seu próprio
+         * orçamento aprovado e pagamento, para provar que
+         * PagamentoService.listar() nunca vaza dados entre tenants.
+         */
+        jdbcTemplate.update("""
+                INSERT INTO empresa (id, nome, cpf_cnpj, ativo, data_criacao)
+                VALUES (8002, 'Empresa B', NULL, true, CURRENT_TIMESTAMP)
+                """);
+
+        jdbcTemplate.update("""
+                INSERT INTO cliente (id, nome, cpf_cnpj, telefone, email, empresa_id)
+                VALUES (1002, 'Cliente B', '22222222222', '47922222222', 'cliente-b@teste.com', 8002)
+                """);
+
+        jdbcTemplate.update("""
+                INSERT INTO equipamento (id, capacidade_btu, local_instalacao, marca, modelo, numero_serie, cliente_id, status, empresa_id)
+                VALUES (2002, 12000, 'Sala B', 'LG', 'Dual Inverter', 'SERIE-B', 1002, 'ATIVO', 8002)
+                """);
+
+        jdbcTemplate.update("""
+                INSERT INTO ordem_servico (id, data_abertura, descricao_problema, diagnostico, status, cliente_id, equipamento_id, empresa_id)
+                VALUES (3002, CURRENT_TIMESTAMP, 'Problema B', NULL, 'ABERTA', 1002, 2002, 8002)
+                """);
+
+        jdbcTemplate.update("""
+                INSERT INTO orcamento (id, data_criacao, data_envio, data_resposta, observacao, status, valor_total, ordem_servico_id, empresa_id)
+                VALUES (4002, CURRENT_TIMESTAMP, NULL, NULL, 'Orçamento B', 'APROVADO', 500.00, 3002, 8002)
+                """);
+
+        jdbcTemplate.update("""
+                INSERT INTO pagamento (id, data_criacao, forma_pagamento, observacao, status, valor, orcamento_id)
+                VALUES (7001, CURRENT_TIMESTAMP, 'PIX', 'Pagamento Empresa B', 'PENDENTE', 300.00, 4002)
+                """);
+
+        PageResponseDTO<PagamentoResponseDTO> resultado = pagamentoService.listar(null, null, null, null, 0, 20);
+
+        assertEquals(1, resultado.totalElements());
+
+        assertTrue(resultado.content().stream().noneMatch(p -> p.id().equals(7001L)));
     }
 }

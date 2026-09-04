@@ -3,6 +3,7 @@ package com.climaservice.api.repository;
 import com.climaservice.api.entity.Agendamento;
 import com.climaservice.api.entity.StatusAgendamento;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -33,6 +34,25 @@ public interface AgendamentoRepository
     List<Agendamento> findByTecnico_IdAndEmpresa_IdOrderByDataHoraInicioAsc(
             Long tecnicoId,
             Long empresaId
+    );
+
+    /*
+     * Usadas pelo dashboard.
+     */
+    long countByEmpresa_IdAndDataHoraInicioBetweenAndStatusNot(
+            Long empresaId,
+            LocalDateTime dataHoraInicioInicial,
+            LocalDateTime dataHoraInicioFinal,
+            StatusAgendamento statusExcluido
+    );
+
+    @EntityGraph(attributePaths = {"tecnico"})
+    List<Agendamento> findByEmpresa_IdAndDataHoraInicioBetweenAndStatusNotInOrderByDataHoraInicioAsc(
+            Long empresaId,
+            LocalDateTime dataHoraInicioInicial,
+            LocalDateTime dataHoraInicioFinal,
+            Collection<StatusAgendamento> statusExcluidos,
+            Pageable pageable
     );
 
     /*

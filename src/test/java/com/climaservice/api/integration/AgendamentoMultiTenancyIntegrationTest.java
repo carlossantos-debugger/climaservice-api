@@ -2,6 +2,7 @@ package com.climaservice.api.integration;
 
 import com.climaservice.api.dto.AgendamentoRequestDTO;
 import com.climaservice.api.dto.AgendamentoResponseDTO;
+import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.service.AgendamentoService;
@@ -129,11 +130,25 @@ class AgendamentoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
     @Test
     void deveListarSomenteAgendamentosDaEmpresaAutenticada() {
 
-        List<AgendamentoResponseDTO> agendamentos = agendamentoService.listar(null, null, null, null);
+        PageResponseDTO<AgendamentoResponseDTO> resultado = agendamentoService.listar(null, null, null, null, 0, 20);
 
-        assertEquals(1, agendamentos.size());
+        assertEquals(1, resultado.totalElements());
 
-        assertEquals(5001L, agendamentos.get(0).id());
+        assertEquals(5001L, resultado.content().get(0).id());
+    }
+
+    @Test
+    void devePaginarAgendamentosDaEmpresaAutenticada() {
+
+        PageResponseDTO<AgendamentoResponseDTO> resultado = agendamentoService.listar(null, null, null, null, 0, 1);
+
+        assertEquals(1, resultado.content().size());
+
+        assertEquals(1, resultado.totalElements());
+
+        assertTrue(resultado.first());
+
+        assertTrue(resultado.last());
     }
 
     @Test
@@ -228,10 +243,10 @@ class AgendamentoMultiTenancyIntegrationTest extends AbstractIntegrationTest {
 
         autenticar("admin-b@teste.com", "ADMIN");
 
-        List<AgendamentoResponseDTO> agendamentos = agendamentoService.listar(null, null, null, null);
+        PageResponseDTO<AgendamentoResponseDTO> resultado = agendamentoService.listar(null, null, null, null, 0, 20);
 
-        assertEquals(1, agendamentos.size());
+        assertEquals(1, resultado.totalElements());
 
-        assertEquals(5002L, agendamentos.get(0).id());
+        assertEquals(5002L, resultado.content().get(0).id());
     }
 }

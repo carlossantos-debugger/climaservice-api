@@ -3,6 +3,8 @@ package com.climaservice.api.controller;
 import com.climaservice.api.dto.ProdutoRequestDTO;
 import com.climaservice.api.dto.ProdutoResponseDTO;
 import com.climaservice.api.service.ProdutoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
+@Tag(name = "Catálogo de Produtos e Peças")
 @RestController
 @RequestMapping("/produtos")
 public class ProdutoController {
@@ -21,6 +24,7 @@ public class ProdutoController {
         this.produtoService = produtoService;
     }
 
+    @Operation(summary = "Cadastrar produto")
     @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PostMapping
     public ResponseEntity<ProdutoResponseDTO> salvar(@Valid @RequestBody ProdutoRequestDTO dto) {
@@ -30,22 +34,26 @@ public class ProdutoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(produto);
     }
 
+    @Operation(summary = "Listar todos os produtos da empresa autenticada")
     @GetMapping
     public List<ProdutoResponseDTO> listarTodos() {
         return produtoService.listarTodos();
     }
 
+    @Operation(summary = "Listar somente produtos ativos")
     @GetMapping("/ativos")
     public List<ProdutoResponseDTO> listarAtivos() {
         return produtoService.listarAtivos();
     }
 
+    @Operation(summary = "Buscar produto por ID")
     @GetMapping("/{id}")
     public ResponseEntity<ProdutoResponseDTO> buscarPorId(@PathVariable Long id) {
 
         return produtoService.buscarPorId(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Atualizar produto")
     @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PutMapping("/{id}")
     public ResponseEntity<ProdutoResponseDTO> atualizar(@PathVariable Long id, @Valid @RequestBody ProdutoRequestDTO dto) {
@@ -53,6 +61,7 @@ public class ProdutoController {
         return ResponseEntity.ok(produtoService.atualizar(id, dto));
     }
 
+    @Operation(summary = "Ativar produto")
     @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PatchMapping("/{id}/ativar")
     public ResponseEntity<ProdutoResponseDTO> ativar(@PathVariable Long id) {
@@ -60,6 +69,7 @@ public class ProdutoController {
         return ResponseEntity.ok(produtoService.ativar(id));
     }
 
+    @Operation(summary = "Inativar produto")
     @PreAuthorize("hasAnyRole('ADMIN', 'ATENDENTE')")
     @PatchMapping("/{id}/inativar")
     public ResponseEntity<ProdutoResponseDTO> inativar(@PathVariable Long id) {
