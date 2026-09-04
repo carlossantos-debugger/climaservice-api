@@ -1,5 +1,7 @@
 # ClimaService API
 
+[![Backend CI](https://github.com/carlossantos-debugger/climaservice-api/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/carlossantos-debugger/climaservice-api/actions/workflows/backend-ci.yml)
+
 API REST para gerenciamento de serviços de climatização e manutenção de ar-condicionado.
 
 O **ClimaService** está sendo desenvolvido como um projeto SaaS voltado para empresas e profissionais que trabalham com instalação, manutenção preventiva e manutenção corretiva de equipamentos de climatização.
@@ -36,11 +38,14 @@ O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot,
 - Testcontainers
 - PostgreSQL real em container para testes de integração
 
-### Planejadas
+### Infraestrutura e CI/CD
 
 - Docker
 - Docker Compose
 - GitHub Actions
+
+### Planejadas
+
 - Angular
 
 ---
@@ -1475,6 +1480,21 @@ docker compose down
 
 ---
 
+# CI/CD
+
+O projeto possui integração contínua via **GitHub Actions** (`.github/workflows/backend-ci.yml`), executada em todo Pull Request para `main` e em todo push em `main`.
+
+O pipeline:
+
+1. Faz checkout do código
+2. Configura o JDK 21 (Temurin), com cache de dependências do Gradle
+3. Executa `./gradlew clean test`
+4. Executa `./gradlew build`
+
+Os testes de integração usam Testcontainers para subir um PostgreSQL real e descartável durante a execução — os runners `ubuntu-latest` do GitHub já vêm com Docker disponível, então nenhuma configuração adicional é necessária. Nenhuma credencial real é usada: os testes utilizam um segredo JWT fixo apenas para teste e um banco descartável, então o workflow não depende de nenhum `secrets.*` do repositório.
+
+---
+
 # Documentação da API (OpenAPI / Swagger)
 
 A API expõe documentação OpenAPI 3 gerada automaticamente via **springdoc-openapi**.
@@ -1613,12 +1633,12 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Documentação OpenAPI / Swagger UI, com autenticação Bearer JWT configurada
 - [x] Health check via Spring Boot Actuator (`/actuator/health`, único endpoint exposto)
 - [x] Containerização com Dockerfile multi-stage e Docker Compose (API + PostgreSQL)
+- [x] CI/CD com GitHub Actions (`clean test` + `build` em PR e push para `main`)
 
 ## Próximas etapas
 
 - [ ] Testes dedicados de isolamento multi-tenant para `UsuarioService` (a lógica já está correta;
   falta cobertura de teste — ver `chore/backend-hardening`)
-- [ ] CI/CD com GitHub Actions
 - [ ] Frontend com Angular
 
 ---
@@ -1694,4 +1714,4 @@ Isolamento multi-tenant
 
 O backend também utiliza **Flyway** para versionamento do banco e uma suíte de testes com **JUnit 5, Mockito e Testcontainers**, executando cenários de integração contra PostgreSQL real em container.
 
-Agenda de atendimentos, manutenção preventiva, paginação/filtros nos endpoints principais e dashboard já estão implementados. As próximas etapas são testes dedicados de isolamento multi-tenant para `UsuarioService`, OpenAPI/Swagger, Docker, CI/CD e frontend com Angular.
+Agenda de atendimentos, manutenção preventiva, paginação/filtros nos endpoints principais, dashboard, documentação OpenAPI/Swagger, containerização com Docker e CI com GitHub Actions já estão implementados. A próxima etapa é testes dedicados de isolamento multi-tenant para `UsuarioService`, seguida do frontend com Angular.
