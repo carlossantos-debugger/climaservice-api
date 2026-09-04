@@ -1,6 +1,7 @@
 package com.climaservice.api.integration;
 
 import com.climaservice.api.dto.ClienteResponseDTO;
+import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.service.ClienteService;
 
 import org.junit.jupiter.api.AfterEach;
@@ -190,6 +191,29 @@ class ClienteMultiTenancyIntegrationTest extends AbstractIntegrationTest {
                 """);
 
         /*
+         * Segundo cliente da Empresa A, usado
+         * nos testes de filtro e paginação.
+         */
+        jdbcTemplate.update("""
+                INSERT INTO cliente (
+                    id,
+                    nome,
+                    cpf_cnpj,
+                    telefone,
+                    email,
+                    empresa_id
+                )
+                VALUES (
+                    1002,
+                    'Outro Cliente A',
+                    '33333333333',
+                    '47933333333',
+                    'outro-a@teste.com',
+                    8001
+                )
+                """);
+
+        /*
          * Por padrão, cada teste começa autenticado
          * como ADMIN da Empresa A.
          */
@@ -206,22 +230,67 @@ class ClienteMultiTenancyIntegrationTest extends AbstractIntegrationTest {
     void deveListarSomenteClientesDaEmpresaAutenticada() {
 
         // Act
-        List<ClienteResponseDTO> clientes = clienteService.listarTodos();
+        PageResponseDTO<ClienteResponseDTO> resultado = clienteService.listar(null, null, 0, 20);
 
         // Assert
-        assertEquals(1, clientes.size());
+        assertEquals(2, resultado.totalElements());
 
-        ClienteResponseDTO cliente = clientes.get(0);
+        List<ClienteResponseDTO> clientes = resultado.content();
 
-        assertEquals(1001L, cliente.id());
-
-        assertEquals("Cliente Empresa A", cliente.nome());
+        /*
+         * Ordenados por nome ASC: "Cliente Empresa A" vem antes de "Outro Cliente A".
+         */
+        assertEquals(1001L, clientes.get(0).id());
 
         /*
          * Garante explicitamente que nenhum cliente
          * da Empresa B vazou para a Empresa A.
          */
         assertTrue(clientes.stream().noneMatch(c -> c.id().equals(2001L)));
+    }
+
+    @Test
+    void devePaginarClientesDaEmpresaAutenticada() {
+
+        PageResponseDTO<ClienteResponseDTO> primeiraPagina = clienteService.listar(null, null, 0, 1);
+
+        assertEquals(1, primeiraPagina.content().size());
+
+        assertEquals(2, primeiraPagina.totalElements());
+
+        assertEquals(2, primeiraPagina.totalPages());
+
+        assertTrue(primeiraPagina.first());
+
+        assertFalse(primeiraPagina.last());
+
+        PageResponseDTO<ClienteResponseDTO> segundaPagina = clienteService.listar(null, null, 1, 1);
+
+        assertEquals(1, segundaPagina.content().size());
+
+        assertTrue(segundaPagina.last());
+
+        assertNotEquals(primeiraPagina.content().get(0).id(), segundaPagina.content().get(0).id());
+    }
+
+    @Test
+    void deveFiltrarClientesPorNomeIgnorandoCaixa() {
+
+        PageResponseDTO<ClienteResponseDTO> resultado = clienteService.listar("outro", null, 0, 20);
+
+        assertEquals(1, resultado.totalElements());
+
+        assertEquals(1002L, resultado.content().get(0).id());
+    }
+
+    @Test
+    void deveFiltrarClientesPorCpfCnpjExato() {
+
+        PageResponseDTO<ClienteResponseDTO> resultado = clienteService.listar(null, "11111111111", 0, 20);
+
+        assertEquals(1, resultado.totalElements());
+
+        assertEquals(1001L, resultado.content().get(0).id());
     }
 
     @Test
@@ -274,12 +343,12 @@ class ClienteMultiTenancyIntegrationTest extends AbstractIntegrationTest {
         autenticar("admin-b@teste.com", "ADMIN");
 
         // Act
-        List<ClienteResponseDTO> clientes = clienteService.listarTodos();
+        PageResponseDTO<ClienteResponseDTO> resultado = clienteService.listar(null, null, 0, 20);
 
         // Assert
-        assertEquals(1, clientes.size());
+        assertEquals(1, resultado.totalElements());
 
-        ClienteResponseDTO cliente = clientes.get(0);
+        ClienteResponseDTO cliente = resultado.content().get(0);
 
         assertEquals(2001L, cliente.id());
 
@@ -288,7 +357,7 @@ class ClienteMultiTenancyIntegrationTest extends AbstractIntegrationTest {
         /*
          * Cliente da Empresa A também deve ficar invisível.
          */
-        assertTrue(clientes.stream().noneMatch(c -> c.id().equals(1001L)));
+        assertTrue(resultado.content().stream().noneMatch(c -> c.id().equals(1001L)));
     }
 
     @Test

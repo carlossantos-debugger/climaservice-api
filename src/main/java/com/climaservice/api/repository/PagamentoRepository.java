@@ -3,12 +3,13 @@ package com.climaservice.api.repository;
 import com.climaservice.api.entity.Pagamento;
 import com.climaservice.api.entity.StatusPagamento;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface PagamentoRepository
-        extends JpaRepository<Pagamento, Long> {
+        extends JpaRepository<Pagamento, Long>, JpaSpecificationExecutor<Pagamento> {
 
     Optional<Pagamento> findByIdAndOrcamento_Empresa_Id(
             Long pagamentoId,

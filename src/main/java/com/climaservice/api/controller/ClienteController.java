@@ -2,14 +2,13 @@ package com.climaservice.api.controller;
 
 import com.climaservice.api.dto.ClienteRequestDTO;
 import com.climaservice.api.dto.ClienteResponseDTO;
+import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.service.ClienteService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/clientes")
@@ -22,8 +21,9 @@ public class ClienteController {
     }
 
     @GetMapping
-    public List<ClienteResponseDTO> listarTodos() {
-        return clienteService.listarTodos();
+    public PageResponseDTO<ClienteResponseDTO> listar(@RequestParam(required = false) String nome, @RequestParam(required = false) String cpfCnpj, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+
+        return clienteService.listar(nome, cpfCnpj, page, size);
     }
 
     @GetMapping("/{id}")

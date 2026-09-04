@@ -1,14 +1,16 @@
 package com.climaservice.api.controller;
 
 import com.climaservice.api.dto.*;
+import com.climaservice.api.entity.StatusOrcamento;
 import com.climaservice.api.service.OrcamentoService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.climaservice.api.dto.AtualizarOrcamentoItemRequestDTO;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -33,6 +35,12 @@ public class OrcamentoController {
     public List<OrcamentoResponseDTO> listarPorOrdemServico(@PathVariable Long ordemServicoId) {
 
         return orcamentoService.listarPorOrdemServico(ordemServicoId);
+    }
+
+    @GetMapping("/orcamentos")
+    public PageResponseDTO<OrcamentoResponseDTO> listar(@RequestParam(required = false) StatusOrcamento status, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataInicial, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataFinal, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+
+        return orcamentoService.listar(status, dataInicial, dataFinal, page, size);
     }
 
     @GetMapping("/orcamentos/{id}")

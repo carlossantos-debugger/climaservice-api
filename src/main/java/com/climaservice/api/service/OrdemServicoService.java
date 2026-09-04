@@ -6,6 +6,10 @@ import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,11 +77,15 @@ public class OrdemServicoService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrdemServicoResponseDTO> listarTodas() {
+    public PageResponseDTO<OrdemServicoResponseDTO> listar(StatusOrdemServico status, Long clienteId, Long equipamentoId, LocalDateTime dataInicial, LocalDateTime dataFinal, int page, int size) {
 
         Long empresaId = obterEmpresaIdAtual();
 
-        return ordemServicoRepository.findByEmpresa_IdOrderByDataAberturaDesc(empresaId).stream().map(this::converterParaResponse).toList();
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dataAbertura"));
+
+        Page<OrdemServicoResponseDTO> resultado = ordemServicoRepository.findAll(OrdemServicoSpecifications.comFiltros(empresaId, status, clienteId, equipamentoId, dataInicial, dataFinal), pageable).map(this::converterParaResponse);
+
+        return PageResponseDTO.from(resultado);
     }
 
     @Transactional(readOnly = true)

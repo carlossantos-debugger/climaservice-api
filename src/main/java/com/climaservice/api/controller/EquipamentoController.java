@@ -2,6 +2,8 @@ package com.climaservice.api.controller;
 
 import com.climaservice.api.dto.EquipamentoRequestDTO;
 import com.climaservice.api.dto.EquipamentoResponseDTO;
+import com.climaservice.api.dto.PageResponseDTO;
+import com.climaservice.api.entity.StatusEquipamento;
 import com.climaservice.api.service.EquipamentoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -30,8 +32,9 @@ public class EquipamentoController {
     }
 
     @GetMapping("/equipamentos")
-    public List<EquipamentoResponseDTO> listarTodos() {
-        return equipamentoService.listarTodos();
+    public PageResponseDTO<EquipamentoResponseDTO> listar(@RequestParam(required = false) Long clienteId, @RequestParam(required = false) StatusEquipamento status, @RequestParam(required = false) String marca, @RequestParam(required = false) String modelo, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+
+        return equipamentoService.listar(clienteId, status, marca, modelo, page, size);
     }
 
     @GetMapping("/equipamentos/{id}")

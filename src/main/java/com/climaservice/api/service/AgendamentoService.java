@@ -5,6 +5,7 @@ import com.climaservice.api.dto.AgendamentoReagendarRequestDTO;
 import com.climaservice.api.dto.AgendamentoRequestDTO;
 import com.climaservice.api.dto.AgendamentoResponseDTO;
 import com.climaservice.api.dto.AtualizarStatusAgendamentoRequestDTO;
+import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.entity.Agendamento;
 import com.climaservice.api.entity.AgendamentoHistorico;
 import com.climaservice.api.entity.Empresa;
@@ -21,6 +22,9 @@ import com.climaservice.api.repository.AgendamentoSpecifications;
 import com.climaservice.api.repository.OrdemServicoRepository;
 import com.climaservice.api.repository.UsuarioRepository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -121,11 +125,15 @@ public class AgendamentoService {
     }
 
     @Transactional(readOnly = true)
-    public List<AgendamentoResponseDTO> listar(LocalDateTime dataInicial, LocalDateTime dataFinal, Long tecnicoId, StatusAgendamento status) {
+    public PageResponseDTO<AgendamentoResponseDTO> listar(LocalDateTime dataInicial, LocalDateTime dataFinal, Long tecnicoId, StatusAgendamento status, int page, int size) {
 
         Long empresaId = obterEmpresaIdAtual();
 
-        return agendamentoRepository.findAll(AgendamentoSpecifications.comFiltros(empresaId, tecnicoId, status, dataInicial, dataFinal), Sort.by(Sort.Direction.ASC, "dataHoraInicio")).stream().map(this::converterParaResponse).toList();
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "dataHoraInicio"));
+
+        Page<AgendamentoResponseDTO> resultado = agendamentoRepository.findAll(AgendamentoSpecifications.comFiltros(empresaId, tecnicoId, status, dataInicial, dataFinal), pageable).map(this::converterParaResponse);
+
+        return PageResponseDTO.from(resultado);
     }
 
     @Transactional(readOnly = true)

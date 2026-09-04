@@ -5,6 +5,7 @@ import com.climaservice.api.dto.AgendamentoReagendarRequestDTO;
 import com.climaservice.api.dto.AgendamentoRequestDTO;
 import com.climaservice.api.dto.AgendamentoResponseDTO;
 import com.climaservice.api.dto.AtualizarStatusAgendamentoRequestDTO;
+import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.entity.StatusAgendamento;
 import com.climaservice.api.service.AgendamentoService;
 import jakarta.validation.Valid;
@@ -36,9 +37,9 @@ public class AgendamentoController {
     }
 
     @GetMapping("/agendamentos")
-    public List<AgendamentoResponseDTO> listar(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataInicial, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataFinal, @RequestParam(required = false) Long tecnicoId, @RequestParam(required = false) StatusAgendamento status) {
+    public PageResponseDTO<AgendamentoResponseDTO> listar(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataInicial, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataFinal, @RequestParam(required = false) Long tecnicoId, @RequestParam(required = false) StatusAgendamento status, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
 
-        return agendamentoService.listar(dataInicial, dataFinal, tecnicoId, status);
+        return agendamentoService.listar(dataInicial, dataFinal, tecnicoId, status, page, size);
     }
 
     @GetMapping("/agendamentos/{id}")

@@ -4,13 +4,18 @@ import com.climaservice.api.dto.PagamentoHistoricoResponseDTO;
 import com.climaservice.api.dto.PagamentoRequestDTO;
 import com.climaservice.api.dto.PagamentoResponseDTO;
 import com.climaservice.api.dto.PagamentoResumoResponseDTO;
+import com.climaservice.api.dto.PageResponseDTO;
+import com.climaservice.api.entity.FormaPagamento;
+import com.climaservice.api.entity.StatusPagamento;
 import com.climaservice.api.service.PagamentoService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -35,6 +40,12 @@ public class PagamentoController {
     public List<PagamentoResponseDTO> listarPorOrcamento(@PathVariable Long orcamentoId) {
 
         return pagamentoService.listarPorOrcamento(orcamentoId);
+    }
+
+    @GetMapping("/pagamentos")
+    public PageResponseDTO<PagamentoResponseDTO> listar(@RequestParam(required = false) StatusPagamento status, @RequestParam(required = false) FormaPagamento formaPagamento, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataInicial, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataFinal, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+
+        return pagamentoService.listar(status, formaPagamento, dataInicial, dataFinal, page, size);
     }
 
     @GetMapping("/orcamentos/{orcamentoId}/pagamentos/resumo")

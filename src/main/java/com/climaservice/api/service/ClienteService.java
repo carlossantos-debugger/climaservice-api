@@ -2,12 +2,18 @@ package com.climaservice.api.service;
 
 import com.climaservice.api.dto.ClienteRequestDTO;
 import com.climaservice.api.dto.ClienteResponseDTO;
+import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.entity.Cliente;
 import com.climaservice.api.entity.Empresa;
 import com.climaservice.api.repository.ClienteRepository;
+import com.climaservice.api.repository.ClienteSpecifications;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -43,18 +49,20 @@ public class ClienteService {
         return converterParaResponse(clienteSalvo);
     }
 
-    public List<ClienteResponseDTO> listarTodos() {
+    public PageResponseDTO<ClienteResponseDTO> listar(String nome, String cpfCnpj, int page, int size) {
 
         Long empresaId =
                 usuarioAutenticadoService
                         .obterEmpresaAtual()
                         .getId();
 
-        return clienteRepository
-                .findByEmpresa_IdOrderByNomeAsc(empresaId)
-                .stream()
-                .map(this::converterParaResponse)
-                .toList();
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "nome"));
+
+        Page<ClienteResponseDTO> resultado = clienteRepository
+                .findAll(ClienteSpecifications.comFiltros(empresaId, nome, cpfCnpj), pageable)
+                .map(this::converterParaResponse);
+
+        return PageResponseDTO.from(resultado);
     }
 
     public Optional<ClienteResponseDTO> buscarPorId(Long id) {

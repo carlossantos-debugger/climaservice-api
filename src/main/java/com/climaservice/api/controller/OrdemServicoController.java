@@ -1,14 +1,16 @@
 package com.climaservice.api.controller;
 
 import com.climaservice.api.dto.*;
+import com.climaservice.api.entity.StatusOrdemServico;
 import com.climaservice.api.service.OrdemServicoService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
-import com.climaservice.api.dto.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -30,8 +32,9 @@ public class OrdemServicoController {
     }
 
     @GetMapping("/ordens-servico")
-    public List<OrdemServicoResponseDTO> listarTodas() {
-        return ordemServicoService.listarTodas();
+    public PageResponseDTO<OrdemServicoResponseDTO> listar(@RequestParam(required = false) StatusOrdemServico status, @RequestParam(required = false) Long clienteId, @RequestParam(required = false) Long equipamentoId, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataInicial, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataFinal, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+
+        return ordemServicoService.listar(status, clienteId, equipamentoId, dataInicial, dataFinal, page, size);
     }
 
     @GetMapping("/ordens-servico/{id}")
