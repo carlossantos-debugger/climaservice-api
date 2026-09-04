@@ -22,6 +22,15 @@ public class Cliente {
     @Column(length = 150)
     private String email;
 
+    @Embedded
+    private Endereco endereco;
+
+    @Column(name = "inscricao_municipal", length = 30)
+    private String inscricaoMunicipal;
+
+    @Column(name = "inscricao_estadual", length = 30)
+    private String inscricaoEstadual;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
@@ -77,5 +86,29 @@ public class Cliente {
 
     public Empresa getEmpresa() {
         return empresa;
+    }
+
+    public Endereco getEndereco() {
+        return endereco;
+    }
+
+    public void setEndereco(Endereco endereco) {
+        this.endereco = endereco;
+    }
+
+    public String getInscricaoMunicipal() {
+        return inscricaoMunicipal;
+    }
+
+    public void setInscricaoMunicipal(String inscricaoMunicipal) {
+        this.inscricaoMunicipal = inscricaoMunicipal;
+    }
+
+    public String getInscricaoEstadual() {
+        return inscricaoEstadual;
+    }
+
+    public void setInscricaoEstadual(String inscricaoEstadual) {
+        this.inscricaoEstadual = inscricaoEstadual;
     }
 }

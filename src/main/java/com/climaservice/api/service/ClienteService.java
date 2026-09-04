@@ -2,9 +2,11 @@ package com.climaservice.api.service;
 
 import com.climaservice.api.dto.ClienteRequestDTO;
 import com.climaservice.api.dto.ClienteResponseDTO;
+import com.climaservice.api.dto.EnderecoDTO;
 import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.entity.Cliente;
 import com.climaservice.api.entity.Empresa;
+import com.climaservice.api.entity.Endereco;
 import com.climaservice.api.repository.ClienteRepository;
 import com.climaservice.api.repository.ClienteSpecifications;
 
@@ -42,6 +44,12 @@ public class ClienteService {
                 dto.email(),
                 empresa
         );
+
+        cliente.setEndereco(converterParaEndereco(dto.endereco()));
+
+        cliente.setInscricaoMunicipal(dto.inscricaoMunicipal());
+
+        cliente.setInscricaoEstadual(dto.inscricaoEstadual());
 
         Cliente clienteSalvo =
                 clienteRepository.save(cliente);
@@ -95,6 +103,9 @@ public class ClienteService {
                     cliente.setCpfCnpj(dto.cpfCnpj());
                     cliente.setTelefone(dto.telefone());
                     cliente.setEmail(dto.email());
+                    cliente.setEndereco(converterParaEndereco(dto.endereco()));
+                    cliente.setInscricaoMunicipal(dto.inscricaoMunicipal());
+                    cliente.setInscricaoEstadual(dto.inscricaoEstadual());
 
                     Cliente clienteAtualizado =
                             clienteRepository.save(cliente);
@@ -115,6 +126,26 @@ public class ClienteService {
                 .ifPresent(clienteRepository::delete);
     }
 
+    private Endereco converterParaEndereco(EnderecoDTO dto) {
+
+        if (dto == null) {
+
+            return null;
+        }
+
+        return new Endereco(dto.logradouro(), dto.numero(), dto.complemento(), dto.bairro(), dto.cidade(), dto.uf(), dto.cep());
+    }
+
+    private EnderecoDTO converterParaEnderecoDTO(Endereco endereco) {
+
+        if (endereco == null) {
+
+            return null;
+        }
+
+        return new EnderecoDTO(endereco.getLogradouro(), endereco.getNumero(), endereco.getComplemento(), endereco.getBairro(), endereco.getCidade(), endereco.getUf(), endereco.getCep());
+    }
+
     private ClienteResponseDTO converterParaResponse(
             Cliente cliente
     ) {
@@ -124,7 +155,10 @@ public class ClienteService {
                 cliente.getNome(),
                 cliente.getCpfCnpj(),
                 cliente.getTelefone(),
-                cliente.getEmail()
+                cliente.getEmail(),
+                converterParaEnderecoDTO(cliente.getEndereco()),
+                cliente.getInscricaoMunicipal(),
+                cliente.getInscricaoEstadual()
         );
     }
 }
