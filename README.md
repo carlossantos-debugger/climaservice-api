@@ -53,6 +53,7 @@ Atualmente, a API possui os seguintes módulos:
 - Ordens de Serviço
 - Histórico de Ordens de Serviço
 - Agenda de Atendimentos
+- Manutenção Preventiva
 - Catálogo de Serviços
 - Orçamentos
 - Itens de Orçamento
@@ -367,6 +368,66 @@ CANCELADO
 | GET | `/agendamentos/{id}/historico` | Consultar histórico de status |
 | GET | `/tecnicos/{tecnicoId}/agendamentos` | Agenda de um técnico |
 | GET | `/ordens-servico/{ordemServicoId}/agendamentos` | Agendamentos de uma ordem de serviço |
+
+---
+
+# Manutenção Preventiva
+
+Cada equipamento pode possuir um ou mais planos de manutenção preventiva, que definem a periodicidade
+das visitas e permitem gerar automaticamente uma nova Ordem de Serviço quando a manutenção vence.
+
+```text
+Equipamento
+   ↓
+PlanoManutencaoPreventiva
+   ├── Técnico padrão (opcional)
+   ├── Intervalo em meses
+   ├── Próxima execução / última execução
+   └── Execuções (histórico de OS geradas)
+```
+
+### Dados principais
+
+- ID
+- Equipamento
+- Técnico padrão (opcional)
+- Intervalo em meses
+- Próxima execução
+- Última execução
+- Ativo
+- Observação
+- Data de criação
+
+### Regras de negócio
+
+- O equipamento informado precisa pertencer à empresa autenticada e estar `ATIVO`.
+- O técnico padrão (quando informado) precisa pertencer à empresa autenticada, possuir o perfil `TECNICO` e estar ativo.
+- O intervalo em meses deve ser maior que zero.
+- Quando a próxima execução não é informada na criação, o backend calcula automaticamente como
+  `hoje + intervaloMeses`.
+- Um plano inativo ou vinculado a um equipamento inativo não pode gerar novas Ordens de Serviço.
+- A geração de OS só é permitida quando a próxima execução já venceu (`proximaExecucao <= hoje`).
+- **A geração de OS é idempotente**: cada ocorrência (plano + data de referência) só pode gerar uma
+  única Ordem de Serviço. Após gerar, o backend avança automaticamente `ultimaExecucao` e
+  `proximaExecucao` (`proximaExecucao + intervaloMeses`), impedindo que a mesma ocorrência seja
+  processada novamente. A constraint única `(plano, data_referencia)` no banco garante essa regra
+  mesmo sob execução concorrente.
+- A criação da Ordem de Serviço reutiliza as mesmas validações do fluxo manual de abertura de OS.
+
+### Endpoints
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| POST | `/planos-manutencao-preventiva` | Criar plano (`ADMIN`, `ATENDENTE`) |
+| GET | `/planos-manutencao-preventiva` | Listar planos da empresa, com filtros opcionais (`equipamentoId`, `ativo`) |
+| GET | `/planos-manutencao-preventiva/proximas` | Listar planos ativos com vencimento nos próximos `diasLimite` dias (padrão 30) |
+| GET | `/planos-manutencao-preventiva/{id}` | Buscar plano por ID |
+| PUT | `/planos-manutencao-preventiva/{id}` | Atualizar plano (`ADMIN`, `ATENDENTE`) |
+| PATCH | `/planos-manutencao-preventiva/{id}/ativar` | Ativar plano (`ADMIN`, `ATENDENTE`) |
+| PATCH | `/planos-manutencao-preventiva/{id}/inativar` | Inativar plano (`ADMIN`, `ATENDENTE`) |
+| POST | `/planos-manutencao-preventiva/{id}/gerar-ordem-servico` | Gerar OS preventiva (`ADMIN`, `ATENDENTE`) |
+| GET | `/planos-manutencao-preventiva/{id}/execucoes` | Histórico de execuções (OS geradas) do plano |
+| GET | `/equipamentos/{equipamentoId}/planos-manutencao-preventiva` | Planos de manutenção de um equipamento |
 
 ---
 
@@ -1136,18 +1197,20 @@ Empresa
 │
 ├── Cliente
 │    └── Equipamento
-│         └── OrdemServico
-│              ├── OrdemServicoHistorico
-│              ├── OrdemServicoDiagnosticoHistorico
-│              ├── Agendamento
-│              │    └── AgendamentoHistorico
-│              └── Orcamento
-│                   ├── OrcamentoHistorico
-│                   ├── OrcamentoItem
-│                   │    ├── Servico
-│                   │    └── Produto
-│                   └── Pagamento
-│                        └── PagamentoHistorico
+│         ├── OrdemServico
+│         │    ├── OrdemServicoHistorico
+│         │    ├── OrdemServicoDiagnosticoHistorico
+│         │    ├── Agendamento
+│         │    │    └── AgendamentoHistorico
+│         │    └── Orcamento
+│         │         ├── OrcamentoHistorico
+│         │         ├── OrcamentoItem
+│         │         │    ├── Servico
+│         │         │    └── Produto
+│         │         └── Pagamento
+│         │              └── PagamentoHistorico
+│         └── PlanoManutencaoPreventiva
+│              └── PlanoManutencaoPreventivaExecucao
 │
 ├── Servico
 └── Produto
@@ -1385,11 +1448,16 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Consulta e atualização dos dados da própria empresa (`GET`/`PATCH /empresa/me`)
 - [x] Agenda de atendimentos, com técnico, workflow de status e histórico
 - [x] Bloqueio de sobreposição de horário por técnico
+- [x] Planos de manutenção preventiva por equipamento
+- [x] Geração idempotente de Ordem de Serviço a partir de plano preventivo vencido
+- [x] Histórico de execuções de manutenção preventiva
 
 ## Próximas etapas
 
-- [ ] Revisão final do isolamento multi-tenant no gerenciamento de usuários
-- [ ] Manutenção preventiva
+- [ ] Testes dedicados de isolamento multi-tenant para `UsuarioService` (a lógica já está correta;
+  falta cobertura de teste — ver `chore/backend-hardening`)
+- [ ] Paginação e filtros nos endpoints principais
+- [ ] Dashboard e relatórios
 - [ ] OpenAPI / Swagger
 - [ ] Docker
 - [ ] Docker Compose
@@ -1469,4 +1537,4 @@ Isolamento multi-tenant
 
 O backend também utiliza **Flyway** para versionamento do banco e uma suíte de testes com **JUnit 5, Mockito e Testcontainers**, executando cenários de integração contra PostgreSQL real em container.
 
-A próxima etapa é concluir a revisão de isolamento do `UsuarioService`. Depois disso, o projeto poderá avançar para agenda de atendimentos, manutenção preventiva, OpenAPI/Swagger, Docker, CI/CD e frontend com Angular.
+Agenda de atendimentos e manutenção preventiva já estão implementadas. As próximas etapas são paginação/filtros nos endpoints principais, dashboard e relatórios, testes dedicados de isolamento multi-tenant para `UsuarioService`, OpenAPI/Swagger, Docker, CI/CD e frontend com Angular.
