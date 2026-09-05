@@ -1,9 +1,13 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
+import { roleGuard } from './core/guards/role.guard';
+import { Login } from './features/auth/login/login';
 import { MainLayout } from './layout/main-layout/main-layout';
 import { PlaceholderPage } from './shared/components/placeholder-page/placeholder-page';
 
 export const routes: Routes = [
+  { path: 'login', component: Login, canActivate: [guestGuard] },
   {
     path: '',
     component: MainLayout,
@@ -63,6 +67,7 @@ export const routes: Routes = [
       {
         path: 'usuarios',
         component: PlaceholderPage,
+        canActivate: [roleGuard('ADMIN')],
         data: { title: 'Usuários', icon: 'manage_accounts' }
       },
       {
@@ -72,7 +77,6 @@ export const routes: Routes = [
       }
     ]
   },
-  // TODO(feature/authentication): rota pública /login.
   // TODO(feature/ux-hardening): página 404 dedicada em vez deste redirect.
   { path: '**', redirectTo: '' }
 ];

@@ -1,0 +1,36 @@
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 16px;
+
+  &__card {
+    width: 100%;
+    max-width: 380px;
+    padding: 8px 8px 24px;
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px 0 8px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--mat-sys-primary);
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 16px;
+  }
+
+  &__submit {
+    margin-top: 8px;
+    height: 40px;
+  }
+}

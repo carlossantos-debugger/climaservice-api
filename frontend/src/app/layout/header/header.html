@@ -13,8 +13,8 @@
   <span class="header__spacer"></span>
 
   <div class="header__user">
-    <span class="header__user-name">{{ usuarioNome }}</span>
-    <span class="header__user-role">{{ usuarioRole }}</span>
+    <span class="header__user-name">{{ currentUser()?.nome ?? '—' }}</span>
+    <span class="header__user-role">{{ currentUser()?.role ?? '—' }}</span>
   </div>
 
   <button mat-icon-button matTooltip="Sair" aria-label="Sair" (click)="logout()">
