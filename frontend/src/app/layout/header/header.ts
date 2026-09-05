@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-header',
@@ -13,20 +13,17 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Header {
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly authService = inject(AuthService);
 
   /** Emitido ao clicar no botão de menu, visível apenas em telas menores (modo "over" do sidenav). */
   readonly menuToggle = output<void>();
 
-  // TODO(feature/authentication): substituir pelos dados reais de AuthService
-  // (nome/role do usuário logado, nome da empresa via GET /empresa/me).
+  readonly currentUser = this.authService.currentUser;
+
+  // TODO(feature/empresa): nome real da empresa via GET /empresa/me.
   readonly empresaNome = 'ClimaService';
-  readonly usuarioNome = '—';
-  readonly usuarioRole = '—';
 
   logout(): void {
-    this.snackBar.open('Login ainda não implementado (chega na feature/authentication).', 'Ok', {
-      duration: 4000
-    });
+    this.authService.logout();
   }
 }
