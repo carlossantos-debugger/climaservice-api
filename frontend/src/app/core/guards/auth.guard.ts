@@ -1,14 +1,15 @@
-import { CanActivateFn } from '@angular/router';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
-/**
- * Protege as rotas internas (layout principal).
- *
- * Ainda não há `AuthService`/token nesta branch (feature/frontend-foundation) — a
- * verificação real de sessão (token presente, redirecionamento para /login em caso
- * negativo) entra na feature/authentication. Por ora o guard só existe para que as
- * rotas já nasçam "protegidas" e a próxima branch precise apenas preencher a lógica
- * aqui dentro, sem tocar em app.routes.ts.
- */
-export const authGuard: CanActivateFn = () => {
-  return true;
+/** Protege as rotas internas (layout principal). Sem sessão, manda para /login. */
+export const authGuard: CanActivateFn = (_route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (authService.isAuthenticated()) {
+    return true;
+  }
+
+  return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
 };
