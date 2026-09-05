@@ -1,0 +1,14 @@
+.layout {
+  height: 100vh;
+
+  &__sidenav {
+    width: 260px;
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  &__main {
+    padding: 24px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+}

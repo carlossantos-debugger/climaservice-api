@@ -1,0 +1,28 @@
+.placeholder-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 64px 16px;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+
+  &__icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    opacity: 0.5;
+  }
+
+  h1 {
+    margin: 8px 0 0;
+    font-size: 1.25rem;
+    color: var(--mat-sys-on-surface, rgba(0, 0, 0, 0.87));
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+  }
+}

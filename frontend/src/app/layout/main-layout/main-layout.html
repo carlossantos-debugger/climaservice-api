@@ -1,0 +1,17 @@
+<mat-sidenav-container class="layout">
+  <mat-sidenav
+    #drawer
+    class="layout__sidenav"
+    [mode]="isHandsetOrTablet() ? 'over' : 'side'"
+    [opened]="!isHandsetOrTablet()"
+  >
+    <app-sidebar (navigated)="isHandsetOrTablet() && drawer.close()" />
+  </mat-sidenav>
+
+  <mat-sidenav-content class="layout__content">
+    <app-header (menuToggle)="drawer.toggle()" />
+    <main class="layout__main">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>
