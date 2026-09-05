@@ -186,7 +186,7 @@ class EmpresaServiceTest {
     @Test
     void deveAtualizarEmpresaAtualQuandoCpfCnpjEstiverDisponivel() {
 
-        EmpresaAtualizarRequestDTO dto = new EmpresaAtualizarRequestDTO("Empresa Renomeada", "98765432000188");
+        EmpresaAtualizarRequestDTO dto = new EmpresaAtualizarRequestDTO("Empresa Renomeada", "98765432000188", null, null, null, null, null);
 
         when(usuarioAutenticadoService.obterEmpresaAtual()).thenReturn(empresa);
 
@@ -215,9 +215,42 @@ class EmpresaServiceTest {
 
 
     @Test
+    void deveManterCamposFiscaisQuandoNaoInformadosNaAtualizacao() {
+
+        /*
+         * PATCH: quando o campo fiscal não vem no payload, o cadastro já
+         * existente não pode ser apagado.
+         */
+        EmpresaAtualizarRequestDTO dto = new EmpresaAtualizarRequestDTO("Empresa Renomeada", null, null, null, null, null, null);
+
+        when(usuarioAutenticadoService.obterEmpresaAtual()).thenReturn(empresa);
+
+        when(empresa.getId()).thenReturn(EMPRESA_ID);
+
+        when(empresaRepository.save(empresa)).thenReturn(empresa);
+
+        when(empresa.getNome()).thenReturn("Empresa Renomeada");
+
+        when(empresa.isAtivo()).thenReturn(true);
+
+        empresaService.atualizarEmpresaAtual(dto);
+
+        verify(empresa, never()).setEndereco(any());
+
+        verify(empresa, never()).setInscricaoMunicipal(any());
+
+        verify(empresa, never()).setRegimeTributario(any());
+
+        verify(empresa, never()).setCodigoServicoPadrao(any());
+
+        verify(empresa, never()).setAliquotaIssPadrao(any());
+    }
+
+
+    @Test
     void deveImpedirAtualizacaoComCpfCnpjUsadoPorOutraEmpresa() {
 
-        EmpresaAtualizarRequestDTO dto = new EmpresaAtualizarRequestDTO("Empresa Renomeada", "98765432000188");
+        EmpresaAtualizarRequestDTO dto = new EmpresaAtualizarRequestDTO("Empresa Renomeada", "98765432000188", null, null, null, null, null);
 
         when(usuarioAutenticadoService.obterEmpresaAtual()).thenReturn(empresa);
 

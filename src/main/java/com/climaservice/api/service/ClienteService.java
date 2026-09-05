@@ -2,6 +2,7 @@ package com.climaservice.api.service;
 
 import com.climaservice.api.dto.ClienteRequestDTO;
 import com.climaservice.api.dto.ClienteResponseDTO;
+import com.climaservice.api.dto.EnderecoMapper;
 import com.climaservice.api.dto.PageResponseDTO;
 import com.climaservice.api.entity.Cliente;
 import com.climaservice.api.entity.Empresa;
@@ -42,6 +43,12 @@ public class ClienteService {
                 dto.email(),
                 empresa
         );
+
+        cliente.setEndereco(EnderecoMapper.paraEntidade(dto.endereco()));
+
+        cliente.setInscricaoMunicipal(dto.inscricaoMunicipal());
+
+        cliente.setInscricaoEstadual(dto.inscricaoEstadual());
 
         Cliente clienteSalvo =
                 clienteRepository.save(cliente);
@@ -95,6 +102,9 @@ public class ClienteService {
                     cliente.setCpfCnpj(dto.cpfCnpj());
                     cliente.setTelefone(dto.telefone());
                     cliente.setEmail(dto.email());
+                    cliente.setEndereco(EnderecoMapper.paraEntidade(dto.endereco()));
+                    cliente.setInscricaoMunicipal(dto.inscricaoMunicipal());
+                    cliente.setInscricaoEstadual(dto.inscricaoEstadual());
 
                     Cliente clienteAtualizado =
                             clienteRepository.save(cliente);
@@ -124,7 +134,10 @@ public class ClienteService {
                 cliente.getNome(),
                 cliente.getCpfCnpj(),
                 cliente.getTelefone(),
-                cliente.getEmail()
+                cliente.getEmail(),
+                EnderecoMapper.paraDTO(cliente.getEndereco()),
+                cliente.getInscricaoMunicipal(),
+                cliente.getInscricaoEstadual()
         );
     }
 }
