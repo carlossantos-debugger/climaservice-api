@@ -1,0 +1,23 @@
+<mat-toolbar class="header" color="primary">
+  <button
+    mat-icon-button
+    class="header__menu-toggle"
+    aria-label="Abrir menu"
+    (click)="menuToggle.emit()"
+  >
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <span class="header__empresa">{{ empresaNome }}</span>
+
+  <span class="header__spacer"></span>
+
+  <div class="header__user">
+    <span class="header__user-name">{{ usuarioNome }}</span>
+    <span class="header__user-role">{{ usuarioRole }}</span>
+  </div>
+
+  <button mat-icon-button matTooltip="Sair" aria-label="Sair" (click)="logout()">
+    <mat-icon>logout</mat-icon>
+  </button>
+</mat-toolbar>
