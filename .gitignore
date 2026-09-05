@@ -49,3 +49,6 @@ application-local.yml
 ### OS ###
 .DS_Store
 Thumbs.db
+
+### Claude Code worktrees (never commit these) ###
+.claude/worktrees/
