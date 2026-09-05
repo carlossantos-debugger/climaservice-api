@@ -16,6 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -209,6 +211,39 @@ class NotaFiscalServicoServiceTest {
     }
 
     @Test
+    void deveTraduzirCorridaDeConcorrenciaEmExcecaoDeNegocio() {
+
+        construirService();
+
+        prepararEmpresaAtual();
+
+        prepararOrdemServicoValida(1L);
+
+        prepararOrcamentoAprovado(1L, new BigDecimal("1000.00"));
+
+        prepararCadastroFiscalCompleto();
+
+        /*
+         * Simula duas requisições concorrentes passando pela checagem de
+         * existência antes de qualquer uma commitar — a constraint única
+         * do banco (V15) rejeita a segunda gravação.
+         */
+        when(notaFiscalServicoRepository.existsByOrdemServico_IdAndEmpresa_IdAndStatusNot(1L, EMPRESA_ID, StatusNotaFiscalServico.CANCELADA)).thenReturn(false);
+
+        when(empresa.getCodigoServicoPadrao()).thenReturn("01.07");
+
+        when(empresa.getAliquotaIssPadrao()).thenReturn(new BigDecimal("5.00"));
+
+        when(notaFiscalServicoRepository.save(any(NotaFiscalServico.class))).thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint"));
+
+        NotaFiscalServicoRequestDTO dto = new NotaFiscalServicoRequestDTO("Descrição", null, null);
+
+        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> service.criar(1L, dto));
+
+        assertEquals("Já existe uma nota fiscal ativa para esta ordem de serviço", exception.getMessage());
+    }
+
+    @Test
     void deveLancarExcecaoQuandoOrdemServicoNaoExistir() {
 
         construirService();
@@ -345,6 +380,8 @@ class NotaFiscalServicoServiceTest {
 
         when(empresa.getEndereco()).thenReturn(enderecoCompleto);
 
+        when(empresa.getRegimeTributario()).thenReturn(RegimeTributario.SIMPLES_NACIONAL);
+
         when(ordemServico.getCliente()).thenReturn(cliente);
 
         when(cliente.getNome()).thenReturn("Cliente Teste");
@@ -360,6 +397,31 @@ class NotaFiscalServicoServiceTest {
         assertTrue(response.payloadMontado().contains("ClimaService Instalações"));
 
         assertTrue(response.payloadMontado().contains("Cliente Teste"));
+    }
+
+    @Test
+    void deveImpedirGerarPayloadQuandoCadastroFiscalFicouIncompletoAposCriacao() {
+
+        construirService();
+
+        prepararEmpresaAtual();
+
+        NotaFiscalServico nota = prepararNotaExistente(StatusNotaFiscalServico.RASCUNHO);
+
+        when(ordemServico.getCliente()).thenReturn(cliente);
+
+        /*
+         * Endereço/regime tributário podem ter sido apagados depois que a
+         * nota foi criada (ex.: um PATCH /empresa/me incompleto) — o
+         * gerar-payload precisa recusar em vez de embutir dados nulos.
+         */
+        when(empresa.getEndereco()).thenReturn(null);
+
+        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> service.gerarPayload(1L));
+
+        assertTrue(exception.getMessage().contains("Cadastro fiscal incompleto"));
+
+        verify(notaFiscalServicoRepository, never()).save(nota);
     }
 
     @Test
@@ -421,7 +483,23 @@ class NotaFiscalServicoServiceTest {
     }
 
     @Test
-    void deveImpedirCancelarNotaQueNaoEstaEmRascunho() {
+    void deveCancelarNotaRejeitada() {
+
+        construirService();
+
+        prepararEmpresaAtual();
+
+        NotaFiscalServico nota = prepararNotaExistente(StatusNotaFiscalServico.REJEITADA);
+
+        when(notaFiscalServicoRepository.save(nota)).thenReturn(nota);
+
+        NotaFiscalServicoResponseDTO response = service.cancelar(1L);
+
+        assertEquals(StatusNotaFiscalServico.CANCELADA, response.status());
+    }
+
+    @Test
+    void deveImpedirCancelarNotaQueNaoEstaEmRascunhoOuRejeitada() {
 
         construirService();
 
@@ -431,7 +509,7 @@ class NotaFiscalServicoServiceTest {
 
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> service.cancelar(1L));
 
-        assertEquals("Somente notas em rascunho podem ser canceladas nesta fase", exception.getMessage());
+        assertEquals("Somente notas em rascunho ou rejeitadas podem ser canceladas", exception.getMessage());
 
         verify(notaFiscalServicoRepository, never()).save(any());
     }

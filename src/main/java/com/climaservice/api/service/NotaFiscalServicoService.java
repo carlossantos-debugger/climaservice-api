@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -91,7 +92,22 @@ public class NotaFiscalServicoService {
 
         NotaFiscalServico nota = new NotaFiscalServico(ordemServico, orcamentoAprovado, dto.discriminacaoServico(), codigoServico, aliquotaIss, valorServico, valorIss, ambienteConfigurado, empresa);
 
-        NotaFiscalServico notaSalva = notaFiscalServicoRepository.save(nota);
+        NotaFiscalServico notaSalva;
+
+        try {
+
+            notaSalva = notaFiscalServicoRepository.save(nota);
+
+        } catch (DataIntegrityViolationException exception) {
+
+            /*
+             * Rede de segurança contra corrida entre duas requisições
+             * concorrentes que passaram na checagem de existência acima
+             * antes de qualquer uma commitar — a constraint única do banco
+             * (V15) barra a segunda inserção.
+             */
+            throw new BusinessRuleException("Já existe uma nota fiscal ativa para esta ordem de serviço");
+        }
 
         return converterParaResponse(notaSalva);
     }
@@ -183,6 +199,13 @@ public class NotaFiscalServicoService {
 
         validarRascunho(nota, "Somente notas em rascunho podem ter o payload gerado");
 
+        /*
+         * Recadastro fiscal pode ter sido alterado (ou zerado) depois que a
+         * nota foi criada — reconfirma que ainda está completo antes de
+         * montar o payload, em vez de embutir dados nulos silenciosamente.
+         */
+        validarCadastroFiscalCompleto(nota.getEmpresa(), nota.getOrdemServico().getCliente());
+
         String payload = montarPayload(nota);
 
         nota.setPayloadMontado(payload);
@@ -243,7 +266,17 @@ public class NotaFiscalServicoService {
 
         NotaFiscalServico nota = buscarEntidadePorId(id);
 
-        validarRascunho(nota, "Somente notas em rascunho podem ser canceladas nesta fase");
+        /*
+         * RASCUNHO é o único estado alcançável nesta fase, mas REJEITADA já
+         * é aceita aqui pensando na Fase 2: uma nota rejeitada pela
+         * prefeitura precisa poder ser cancelada, senão a ordem de serviço
+         * fica travada para sempre (a regra de "uma nota ativa por OS" só
+         * libera quando o status vira CANCELADA).
+         */
+        if (nota.getStatus() != StatusNotaFiscalServico.RASCUNHO && nota.getStatus() != StatusNotaFiscalServico.REJEITADA) {
+
+            throw new BusinessRuleException("Somente notas em rascunho ou rejeitadas podem ser canceladas");
+        }
 
         nota.setStatus(StatusNotaFiscalServico.CANCELADA);
 

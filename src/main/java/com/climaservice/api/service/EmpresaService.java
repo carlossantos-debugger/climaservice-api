@@ -2,11 +2,10 @@ package com.climaservice.api.service;
 
 import com.climaservice.api.dto.EmpresaAtualizarRequestDTO;
 import com.climaservice.api.dto.EmpresaResponseDTO;
-import com.climaservice.api.dto.EnderecoDTO;
+import com.climaservice.api.dto.EnderecoMapper;
 import com.climaservice.api.dto.RegisterCompanyRequestDTO;
 import com.climaservice.api.dto.RegisterCompanyResponseDTO;
 import com.climaservice.api.entity.Empresa;
-import com.climaservice.api.entity.Endereco;
 import com.climaservice.api.entity.RoleUsuario;
 import com.climaservice.api.entity.Usuario;
 import com.climaservice.api.exception.BusinessRuleException;
@@ -95,43 +94,43 @@ public class EmpresaService {
 
         empresa.setCpfCnpj(dto.cpfCnpj());
 
-        empresa.setEndereco(converterParaEndereco(dto.endereco()));
+        /*
+         * Campos fiscais são atualizados só quando informados: PATCH não deve
+         * apagar um cadastro fiscal já preenchido por causa de um payload que
+         * simplesmente não reenviou o campo.
+         */
+        if (dto.endereco() != null) {
 
-        empresa.setInscricaoMunicipal(dto.inscricaoMunicipal());
+            empresa.setEndereco(EnderecoMapper.paraEntidade(dto.endereco()));
+        }
 
-        empresa.setRegimeTributario(dto.regimeTributario());
+        if (dto.inscricaoMunicipal() != null) {
 
-        empresa.setCodigoServicoPadrao(dto.codigoServicoPadrao());
+            empresa.setInscricaoMunicipal(dto.inscricaoMunicipal());
+        }
 
-        empresa.setAliquotaIssPadrao(dto.aliquotaIssPadrao());
+        if (dto.regimeTributario() != null) {
+
+            empresa.setRegimeTributario(dto.regimeTributario());
+        }
+
+        if (dto.codigoServicoPadrao() != null) {
+
+            empresa.setCodigoServicoPadrao(dto.codigoServicoPadrao());
+        }
+
+        if (dto.aliquotaIssPadrao() != null) {
+
+            empresa.setAliquotaIssPadrao(dto.aliquotaIssPadrao());
+        }
 
         Empresa empresaAtualizada = empresaRepository.save(empresa);
 
         return converterParaResponse(empresaAtualizada);
     }
 
-    private Endereco converterParaEndereco(EnderecoDTO dto) {
-
-        if (dto == null) {
-
-            return null;
-        }
-
-        return new Endereco(dto.logradouro(), dto.numero(), dto.complemento(), dto.bairro(), dto.cidade(), dto.uf(), dto.cep());
-    }
-
-    private EnderecoDTO converterParaEnderecoDTO(Endereco endereco) {
-
-        if (endereco == null) {
-
-            return null;
-        }
-
-        return new EnderecoDTO(endereco.getLogradouro(), endereco.getNumero(), endereco.getComplemento(), endereco.getBairro(), endereco.getCidade(), endereco.getUf(), endereco.getCep());
-    }
-
     private EmpresaResponseDTO converterParaResponse(Empresa empresa) {
 
-        return new EmpresaResponseDTO(empresa.getId(), empresa.getNome(), empresa.getCpfCnpj(), empresa.isAtivo(), empresa.getDataCriacao(), converterParaEnderecoDTO(empresa.getEndereco()), empresa.getInscricaoMunicipal(), empresa.getRegimeTributario(), empresa.getCodigoServicoPadrao(), empresa.getAliquotaIssPadrao());
+        return new EmpresaResponseDTO(empresa.getId(), empresa.getNome(), empresa.getCpfCnpj(), empresa.isAtivo(), empresa.getDataCriacao(), EnderecoMapper.paraDTO(empresa.getEndereco()), empresa.getInscricaoMunicipal(), empresa.getRegimeTributario(), empresa.getCodigoServicoPadrao(), empresa.getAliquotaIssPadrao());
     }
 }
