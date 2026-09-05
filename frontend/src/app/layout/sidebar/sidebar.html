@@ -5,7 +5,7 @@
   </div>
 
   <mat-nav-list class="sidebar__nav">
-    @for (item of navItems; track item.path) {
+    @for (item of navItems(); track item.path) {
       <a
         mat-list-item
         [routerLink]="item.path"
