@@ -2,6 +2,7 @@ package com.climaservice.api.service;
 
 import com.climaservice.api.dto.EmpresaAtualizarRequestDTO;
 import com.climaservice.api.dto.EmpresaResponseDTO;
+import com.climaservice.api.dto.EnderecoMapper;
 import com.climaservice.api.dto.RegisterCompanyRequestDTO;
 import com.climaservice.api.dto.RegisterCompanyResponseDTO;
 import com.climaservice.api.entity.Empresa;
@@ -93,6 +94,36 @@ public class EmpresaService {
 
         empresa.setCpfCnpj(dto.cpfCnpj());
 
+        /*
+         * Campos fiscais são atualizados só quando informados: PATCH não deve
+         * apagar um cadastro fiscal já preenchido por causa de um payload que
+         * simplesmente não reenviou o campo.
+         */
+        if (dto.endereco() != null) {
+
+            empresa.setEndereco(EnderecoMapper.paraEntidade(dto.endereco()));
+        }
+
+        if (dto.inscricaoMunicipal() != null) {
+
+            empresa.setInscricaoMunicipal(dto.inscricaoMunicipal());
+        }
+
+        if (dto.regimeTributario() != null) {
+
+            empresa.setRegimeTributario(dto.regimeTributario());
+        }
+
+        if (dto.codigoServicoPadrao() != null) {
+
+            empresa.setCodigoServicoPadrao(dto.codigoServicoPadrao());
+        }
+
+        if (dto.aliquotaIssPadrao() != null) {
+
+            empresa.setAliquotaIssPadrao(dto.aliquotaIssPadrao());
+        }
+
         Empresa empresaAtualizada = empresaRepository.save(empresa);
 
         return converterParaResponse(empresaAtualizada);
@@ -100,6 +131,6 @@ public class EmpresaService {
 
     private EmpresaResponseDTO converterParaResponse(Empresa empresa) {
 
-        return new EmpresaResponseDTO(empresa.getId(), empresa.getNome(), empresa.getCpfCnpj(), empresa.isAtivo(), empresa.getDataCriacao());
+        return new EmpresaResponseDTO(empresa.getId(), empresa.getNome(), empresa.getCpfCnpj(), empresa.isAtivo(), empresa.getDataCriacao(), EnderecoMapper.paraDTO(empresa.getEndereco()), empresa.getInscricaoMunicipal(), empresa.getRegimeTributario(), empresa.getCodigoServicoPadrao(), empresa.getAliquotaIssPadrao());
     }
 }

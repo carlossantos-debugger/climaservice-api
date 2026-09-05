@@ -65,6 +65,7 @@ Atualmente, a API possui os seguintes módulos:
 - Itens de Orçamento
 - Catálogo de Produtos e Peças
 - Pagamentos
+- Nota Fiscal de Serviço Eletrônica (Fase 1 — modelo de dados e rascunho, sem emissão real)
 - Usuários
 - Autenticação e Autorização
 - Empresas e contexto de tenant
@@ -814,6 +815,69 @@ O backend calcula informações como:
 | GET | `/pagamentos/{id}` | Buscar pagamento por ID |
 | PATCH | `/pagamentos/{id}/confirmar` | Confirmar pagamento |
 | PATCH | `/pagamentos/{id}/cancelar` | Cancelar pagamento |
+
+---
+
+# Nota Fiscal de Serviço Eletrônica (NFS-e)
+
+> 🚧 **Fase 1 apenas.** Esta funcionalidade cobre o modelo de dados e o fluxo de rascunho da nota
+> fiscal — **não emite uma NFS-e real**. A emissão real exige integração com o Sistema Nacional de
+> NFS-e (município de Brusque/SC está migrando para esse padrão federal) via mTLS com certificado
+> digital ICP-Brasil A1/A3 vinculado ao CNPJ da empresa, que ainda não está configurado nesta
+> instalação. A Fase 2 (cliente mTLS, assinatura XML do DPS, chamada real ao ambiente de
+> homologação/produção) fica para quando houver certificado — o endpoint `enviar` já existe e é
+> validado, mas retorna um erro explícito informando que ainda não está disponível.
+
+Cada Ordem de Serviço com orçamento aprovado pode gerar uma nota fiscal de serviço, cujo rascunho é
+preenchido, validado e armazenado localmente antes de (futuramente) ser enviado à prefeitura.
+
+```text
+OrdemServico (com Orcamento APROVADO)
+   ↓
+NotaFiscalServico
+   ├── Discriminação do serviço (por nota)
+   ├── Código de serviço / alíquota ISS (herdados da Empresa, editáveis por nota)
+   ├── Payload interno (montado sob demanda, dry-run)
+   └── Status: RASCUNHO → ENVIADA → AUTORIZADA | REJEITADA (CANCELADA a partir de RASCUNHO)
+```
+
+### Cadastro fiscal (pré-requisito)
+
+Para emitir uma nota, a **Empresa** e o **Cliente** da OS precisam ter cadastro fiscal completo:
+
+- `Empresa`: endereço completo, regime tributário, e opcionalmente código de serviço/alíquota ISS
+  padrão (via `PATCH /empresa/me`).
+- `Cliente`: endereço completo, e opcionalmente inscrição municipal/estadual quando pessoa jurídica
+  (via `POST`/`PUT /clientes`).
+
+Se algo estiver faltando, a criação da nota falha com uma mensagem listando exatamente os campos
+pendentes.
+
+### Regras de negócio
+
+- Exige um orçamento **APROVADO** para a ordem de serviço.
+- Não permite mais de uma nota ativa (não cancelada) por ordem de serviço.
+- Código de serviço e alíquota de ISS são herdados do cadastro padrão da empresa na criação, mas
+  podem ser sobrescritos por nota; o valor do ISS é recalculado automaticamente.
+- Apenas notas em `RASCUNHO` podem ser atualizadas, ter o payload gerado ou canceladas nesta fase.
+- `POST .../gerar-payload` monta uma representação JSON interna provisória dos dados que seriam
+  enviados — **não é o XML/DPS oficial** do Sistema Nacional de NFS-e (o schema exato será mapeado na
+  Fase 2, após conferir a documentação técnica ao vivo do ambiente de homologação).
+
+### Endpoints
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| POST | `/ordens-servico/{id}/nota-fiscal-servico` | Criar rascunho a partir do orçamento aprovado (`ADMIN`, `ATENDENTE`) |
+| GET | `/notas-fiscais-servico` | Listar notas da empresa (paginado), com filtro opcional por `status` |
+| GET | `/notas-fiscais-servico/{id}` | Buscar nota por ID |
+| PUT | `/notas-fiscais-servico/{id}` | Atualizar rascunho (`ADMIN`, `ATENDENTE`) |
+| POST | `/notas-fiscais-servico/{id}/gerar-payload` | Montar/validar o payload interno, sem enviar (`ADMIN`, `ATENDENTE`) |
+| POST | `/notas-fiscais-servico/{id}/enviar` | Enviar à prefeitura — **ainda não disponível (Fase 2)** (`ADMIN`, `ATENDENTE`) |
+| PATCH | `/notas-fiscais-servico/{id}/cancelar` | Cancelar rascunho (`ADMIN`, `ATENDENTE`) |
+
+A criação de novas notas usa o ambiente configurado em `NOTA_FISCAL_AMBIENTE` (`HOMOLOGACAO` por
+padrão, ou `PRODUCAO`) — nesta fase esse valor só fica registrado na nota, sem nenhuma chamada real.
 
 ---
 
@@ -1665,9 +1729,12 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Regra para nunca remover o último `ADMIN` ativo de uma empresa
 - [x] Configuração de CORS para o futuro frontend Angular
 - [x] Índices de FK ausentes em tabelas de histórico e itens de orçamento
+- [x] Nota Fiscal de Serviço Eletrônica — Fase 1 (modelo de dados, cadastro fiscal, rascunho e payload interno)
 
 ## Próximas etapas
 
+- [ ] Nota Fiscal de Serviço Eletrônica — Fase 2 (integração real com o Sistema Nacional de NFS-e via
+  mTLS + certificado digital A1/A3, pendente de certificado)
 - [ ] Frontend com Angular
 
 ---
