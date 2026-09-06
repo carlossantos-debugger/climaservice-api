@@ -49,4 +49,8 @@ export class EquipamentoService {
   inativar(id: number): Observable<EquipamentoResponse> {
     return this.http.patch<EquipamentoResponse>(`${BASE_URL}/${id}/inativar`, {});
   }
+
+  listarAtivosPorCliente(clienteId: number): Observable<EquipamentoResponse[]> {
+    return this.http.get<EquipamentoResponse[]>(`${environment.apiUrl}/clientes/${clienteId}/equipamentos/ativos`);
+  }
 }

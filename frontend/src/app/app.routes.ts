@@ -51,8 +51,20 @@ export const routes: Routes = [
       {
         path: 'ordens-servico',
         loadComponent: () =>
-          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
-        data: { title: 'Ordens de Serviço', icon: 'build' }
+          import('./features/ordens-servico/ordem-servico-list/ordem-servico-list').then((m) => m.OrdemServicoList)
+      },
+      {
+        path: 'ordens-servico/nova',
+        loadComponent: () =>
+          import('./features/ordens-servico/ordem-servico-form/ordem-servico-form').then((m) => m.OrdemServicoForm),
+        canActivate: [roleGuard('ADMIN', 'TECNICO')]
+      },
+      {
+        path: 'ordens-servico/:id',
+        loadComponent: () =>
+          import('./features/ordens-servico/ordem-servico-detail/ordem-servico-detail').then(
+            (m) => m.OrdemServicoDetail
+          )
       },
       {
         path: 'agendamentos',
