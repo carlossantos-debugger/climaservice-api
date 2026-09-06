@@ -1,0 +1,68 @@
+h1 {
+  margin: 0 0 24px;
+}
+
+.dashboard {
+  &__section {
+    margin-top: 32px;
+
+    h2 {
+      margin: 0 0 16px;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  &__metric {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 16px;
+
+    mat-icon {
+      color: rgba(0, 0, 0, 0.54);
+      margin-bottom: 4px;
+    }
+  }
+
+  &__metric-value {
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+
+  &__metric-label {
+    font-size: 0.8125rem;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  &__columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+
+    mat-card {
+      padding: 16px;
+
+      h3 {
+        margin: 0 0 8px;
+      }
+    }
+  }
+
+  &__empty {
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 0.875rem;
+  }
+}

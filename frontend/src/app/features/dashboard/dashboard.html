@@ -1,0 +1,119 @@
+<div class="dashboard">
+<h1>Dashboard</h1>
+
+@if (loading()) {
+  <app-loading message="Carregando dashboard..." />
+} @else if (errorMessage(); as message) {
+  <app-error-message [message]="message" />
+} @else {
+  @if (resumo(); as r) {
+    <section class="dashboard__grid">
+      <mat-card class="dashboard__metric">
+        <mat-icon>groups</mat-icon>
+        <span class="dashboard__metric-value">{{ r.clientesAtivos }}</span>
+        <span class="dashboard__metric-label">Clientes</span>
+      </mat-card>
+      <mat-card class="dashboard__metric">
+        <mat-icon>ac_unit</mat-icon>
+        <span class="dashboard__metric-value">{{ r.equipamentosAtivos }}</span>
+        <span class="dashboard__metric-label">Equipamentos ativos</span>
+      </mat-card>
+      <mat-card class="dashboard__metric">
+        <mat-icon>build</mat-icon>
+        <span class="dashboard__metric-value">{{ r.ordensAbertas }}</span>
+        <span class="dashboard__metric-label">OS abertas</span>
+      </mat-card>
+      <mat-card class="dashboard__metric">
+        <mat-icon>engineering</mat-icon>
+        <span class="dashboard__metric-value">{{ r.ordensEmAndamento }}</span>
+        <span class="dashboard__metric-label">OS em andamento</span>
+      </mat-card>
+      <mat-card class="dashboard__metric">
+        <mat-icon>request_quote</mat-icon>
+        <span class="dashboard__metric-value">{{ r.orcamentosPendentes }}</span>
+        <span class="dashboard__metric-label">Orçamentos pendentes</span>
+      </mat-card>
+      <mat-card class="dashboard__metric">
+        <mat-icon>event</mat-icon>
+        <span class="dashboard__metric-value">{{ r.agendamentosHoje }}</span>
+        <span class="dashboard__metric-label">Agendamentos hoje</span>
+      </mat-card>
+      <mat-card class="dashboard__metric">
+        <mat-icon>payments</mat-icon>
+        <span class="dashboard__metric-value">{{ r.receitaConfirmadaNoMes | currency: 'BRL' }}</span>
+        <span class="dashboard__metric-label">Receita confirmada no mês</span>
+      </mat-card>
+    </section>
+  }
+
+  @if (financeiro(); as f) {
+    <section class="dashboard__section">
+      <h2>Financeiro</h2>
+      <div class="dashboard__grid">
+        <mat-card class="dashboard__metric">
+          <span class="dashboard__metric-value">{{ f.valorRecebido | currency: 'BRL' }}</span>
+          <span class="dashboard__metric-label">Recebido (total)</span>
+        </mat-card>
+        <mat-card class="dashboard__metric">
+          <span class="dashboard__metric-value">{{ f.valorPendente | currency: 'BRL' }}</span>
+          <span class="dashboard__metric-label">Pendente</span>
+        </mat-card>
+        <mat-card class="dashboard__metric">
+          <span class="dashboard__metric-value">{{ f.ticketMedio | currency: 'BRL' }}</span>
+          <span class="dashboard__metric-label">Ticket médio</span>
+        </mat-card>
+        <mat-card class="dashboard__metric">
+          <span class="dashboard__metric-value">{{ f.quantidadeOrcamentosAprovados }}</span>
+          <span class="dashboard__metric-label">Orçamentos aprovados</span>
+        </mat-card>
+      </div>
+    </section>
+  }
+
+  @if (operacional(); as o) {
+    <section class="dashboard__section">
+      <h2>Operacional</h2>
+
+      <div class="dashboard__chips">
+        @for (entry of osPorStatusEntries(o); track entry.status) {
+          <mat-chip>{{ statusOsLabel[entry.status] }}: {{ entry.total }}</mat-chip>
+        }
+      </div>
+
+      <div class="dashboard__columns">
+        <mat-card>
+          <h3>Próximos agendamentos</h3>
+          @if (o.proximosAgendamentos.length) {
+            <mat-list>
+              @for (agendamento of o.proximosAgendamentos; track agendamento.id) {
+                <mat-list-item>
+                  <span matListItemTitle>{{ agendamento.tecnicoNome }} — {{ statusAgendamentoLabel[agendamento.status] }}</span>
+                  <span matListItemLine>{{ agendamento.dataHoraInicio | date: 'dd/MM/yyyy HH:mm' }}</span>
+                </mat-list-item>
+              }
+            </mat-list>
+          } @else {
+            <p class="dashboard__empty">Nenhum agendamento nos próximos 7 dias.</p>
+          }
+        </mat-card>
+
+        <mat-card>
+          <h3>Manutenções preventivas próximas</h3>
+          @if (o.manutencoesPreventivasProximas.length) {
+            <mat-list>
+              @for (manutencao of o.manutencoesPreventivasProximas; track manutencao.id) {
+                <mat-list-item>
+                  <span matListItemTitle>{{ manutencao.equipamentoMarca }} {{ manutencao.equipamentoModelo }}</span>
+                  <span matListItemLine>{{ manutencao.proximaExecucao | date: 'dd/MM/yyyy' }}</span>
+                </mat-list-item>
+              }
+            </mat-list>
+          } @else {
+            <p class="dashboard__empty">Nenhuma manutenção prevista nos próximos 30 dias.</p>
+          }
+        </mat-card>
+      </div>
+    </section>
+  }
+}
+</div>

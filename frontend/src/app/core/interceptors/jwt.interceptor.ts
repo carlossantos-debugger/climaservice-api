@@ -8,6 +8,8 @@ import { AuthService } from '../services/auth.service';
  * Anexa `Authorization: Bearer <token>` em toda requisição (quando há sessão) e trata
  * globalmente as respostas 401/403:
  * - 401 (token ausente/expirado/inválido): a sessão não serve mais — limpa e manda para /login.
+ *   Exceção: um 401 do próprio `/auth/login` é só "credenciais inválidas", não sessão
+ *   expirada — nesse caso o erro segue direto para o formulário, sem passar por logout().
  * - 403 (autenticado, mas sem permissão para aquela ação): avisa e deixa o erro seguir,
  *   para a tela que fez a chamada decidir o que mais fazer (ex.: manter o formulário preenchido).
  */
@@ -21,7 +23,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   return next(authReq).pipe(
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
-        if (error.status === 401) {
+        if (error.status === 401 && !req.url.endsWith('/auth/login')) {
           authService.logout();
         } else if (error.status === 403) {
           snackBar.open('Você não tem permissão para essa ação.', 'Ok', { duration: 4000 });
