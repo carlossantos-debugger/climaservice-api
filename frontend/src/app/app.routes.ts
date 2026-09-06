@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { Dashboard } from './features/dashboard/dashboard';
 import { Login } from './features/auth/login/login';
 import { MainLayout } from './layout/main-layout/main-layout';
 import { PlaceholderPage } from './shared/components/placeholder-page/placeholder-page';
@@ -14,11 +15,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
-      {
-        path: 'dashboard',
-        component: PlaceholderPage,
-        data: { title: 'Dashboard', icon: 'dashboard' }
-      },
+      { path: 'dashboard', component: Dashboard },
       {
         path: 'clientes',
         component: PlaceholderPage,
