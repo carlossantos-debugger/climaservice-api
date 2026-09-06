@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { OrdemServicoService } from '../../../core/services/ordem-servico.service';
@@ -35,6 +35,7 @@ const STATUS_LABEL: Record<StatusOrdemServico, string> = {
   selector: 'app-ordem-servico-detail',
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     DatePipe,
     MatButtonModule,
     MatChipsModule,
@@ -75,6 +76,12 @@ export class OrdemServicoDetail implements OnInit {
   readonly proximosStatus = computed(() => {
     const os = this.os();
     return os ? TRANSICOES_STATUS_OS[os.status] : [];
+  });
+  readonly podeAgendar = computed(() => {
+    const os = this.os();
+    return (
+      this.authService.hasRole('ADMIN', 'ATENDENTE') && !!os && os.status !== 'CONCLUIDA' && os.status !== 'CANCELADA'
+    );
   });
 
   readonly diagnosticoForm = this.fb.group({

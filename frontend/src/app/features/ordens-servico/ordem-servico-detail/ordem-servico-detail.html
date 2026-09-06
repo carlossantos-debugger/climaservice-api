@@ -7,6 +7,11 @@
     <div class="os-detail__header">
       <h1>OS #{{ os.id }}</h1>
       <mat-chip>{{ statusLabel[os.status] }}</mat-chip>
+      @if (podeAgendar()) {
+        <a mat-stroked-button [routerLink]="['/agendamentos/novo']" [queryParams]="{ ordemServicoId: os.id }">
+          Agendar
+        </a>
+      }
     </div>
 
     <section class="os-detail__info">

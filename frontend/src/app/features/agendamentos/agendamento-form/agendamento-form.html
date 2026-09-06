@@ -1,0 +1,73 @@
+<div class="agendamento-form">
+  <h1>Novo agendamento</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="agendamento-form__os-busca">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Nº da ordem de serviço</mat-label>
+        <input matInput type="number" formControlName="ordemServicoId" />
+      </mat-form-field>
+      <button mat-stroked-button type="button" [disabled]="buscandoOs()" (click)="buscarOs()">
+        {{ buscandoOs() ? 'Buscando...' : 'Buscar OS' }}
+      </button>
+    </div>
+
+    @if (osNaoEncontrada()) {
+      <app-error-message message="Ordem de serviço não encontrada." />
+    } @else if (ordemServico(); as os) {
+      <div class="agendamento-form__os-resumo">
+        <span><strong>Cliente:</strong> {{ os.clienteNome }}</span>
+        <span><strong>Equipamento:</strong> {{ os.equipamentoMarca }} {{ os.equipamentoModelo }}</span>
+        <span><strong>Status:</strong> {{ os.status }}</span>
+      </div>
+      @if (os.status === 'CONCLUIDA' || os.status === 'CANCELADA') {
+        <app-error-message message="Ordens de serviço concluídas ou canceladas não podem receber novos agendamentos." />
+      }
+    }
+
+    @if (semPermissaoParaListarTecnicos()) {
+      <mat-form-field appearance="outline">
+        <mat-label>ID do técnico</mat-label>
+        <input matInput type="number" formControlName="tecnicoId" />
+        <mat-hint>Seu perfil não pode listar os técnicos da empresa — peça o ID a um administrador.</mat-hint>
+      </mat-form-field>
+    } @else {
+      <mat-form-field appearance="outline">
+        <mat-label>Técnico</mat-label>
+        <mat-select formControlName="tecnicoId">
+          @for (tecnico of tecnicos(); track tecnico.id) {
+            <mat-option [value]="tecnico.id">{{ tecnico.nome }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+
+    <div class="agendamento-form__row">
+      <mat-form-field appearance="outline">
+        <mat-label>Início</mat-label>
+        <input matInput type="datetime-local" formControlName="dataHoraInicio" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Fim</mat-label>
+        <input matInput type="datetime-local" formControlName="dataHoraFim" />
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Observação</mat-label>
+      <textarea matInput formControlName="observacao" rows="3"></textarea>
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <app-error-message [message]="message" />
+    }
+
+    <div class="agendamento-form__acoes">
+      <button mat-stroked-button type="button" (click)="cancelar()">Cancelar</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Salvando...' : 'Agendar' }}
+      </button>
+    </div>
+  </form>
+</div>
