@@ -50,6 +50,9 @@ public class NotaFiscalServico {
     @Column(name = "codigo_verificacao", length = 50)
     private String codigoVerificacao;
 
+    @Column(name = "chave_acesso", length = 50)
+    private String chaveAcesso;
+
     @Column(name = "motivo_rejeicao", length = 1000)
     private String motivoRejeicao;
 
@@ -65,6 +68,14 @@ public class NotaFiscalServico {
      */
     @Column(name = "payload_montado", columnDefinition = "TEXT")
     private String payloadMontado;
+
+    /*
+     * NFS-e autorizada (XML completo devolvido pelo Sistema Nacional de
+     * NFS-e), guardada como veio, para consulta/auditoria futura — a Fase
+     * 2 não faz parsing de todos os campos internos desse XML ainda.
+     */
+    @Column(name = "nfse_xml_retornado", columnDefinition = "TEXT")
+    private String nfseXmlRetornado;
 
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao;
@@ -159,12 +170,32 @@ public class NotaFiscalServico {
         return codigoVerificacao;
     }
 
+    public void setCodigoVerificacao(String codigoVerificacao) {
+        this.codigoVerificacao = codigoVerificacao;
+    }
+
+    public String getChaveAcesso() {
+        return chaveAcesso;
+    }
+
+    public void setChaveAcesso(String chaveAcesso) {
+        this.chaveAcesso = chaveAcesso;
+    }
+
     public String getMotivoRejeicao() {
         return motivoRejeicao;
     }
 
+    public void setMotivoRejeicao(String motivoRejeicao) {
+        this.motivoRejeicao = motivoRejeicao;
+    }
+
     public LocalDateTime getDataEmissao() {
         return dataEmissao;
+    }
+
+    public void setDataEmissao(LocalDateTime dataEmissao) {
+        this.dataEmissao = dataEmissao;
     }
 
     public String getPayloadMontado() {
@@ -173,6 +204,14 @@ public class NotaFiscalServico {
 
     public void setPayloadMontado(String payloadMontado) {
         this.payloadMontado = payloadMontado;
+    }
+
+    public String getNfseXmlRetornado() {
+        return nfseXmlRetornado;
+    }
+
+    public void setNfseXmlRetornado(String nfseXmlRetornado) {
+        this.nfseXmlRetornado = nfseXmlRetornado;
     }
 
     public LocalDateTime getDataCriacao() {

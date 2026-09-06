@@ -1,5 +1,7 @@
 package com.climaservice.api.service;
 
+import com.climaservice.api.client.EnvioDpsResultado;
+import com.climaservice.api.client.SefinNacionalClient;
 import com.climaservice.api.dto.NotaFiscalServicoRequestDTO;
 import com.climaservice.api.dto.NotaFiscalServicoResponseDTO;
 import com.climaservice.api.dto.PageResponseDTO;
@@ -33,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,13 +58,20 @@ public class NotaFiscalServicoService {
 
     private final AmbienteNotaFiscal ambienteConfigurado;
 
-    public NotaFiscalServicoService(NotaFiscalServicoRepository notaFiscalServicoRepository, OrdemServicoRepository ordemServicoRepository, OrcamentoRepository orcamentoRepository, UsuarioAutenticadoService usuarioAutenticadoService, @Value("${app.nota-fiscal.ambiente:HOMOLOGACAO}") String ambienteConfigurado) {
+    private final NfseCertificadoService certificadoService;
+    private final NfseXmlService xmlService;
+    private final SefinNacionalClient sefinNacionalClient;
+
+    public NotaFiscalServicoService(NotaFiscalServicoRepository notaFiscalServicoRepository, OrdemServicoRepository ordemServicoRepository, OrcamentoRepository orcamentoRepository, UsuarioAutenticadoService usuarioAutenticadoService, @Value("${app.nota-fiscal.ambiente:HOMOLOGACAO}") String ambienteConfigurado, NfseCertificadoService certificadoService, NfseXmlService xmlService, SefinNacionalClient sefinNacionalClient) {
 
         this.notaFiscalServicoRepository = notaFiscalServicoRepository;
         this.ordemServicoRepository = ordemServicoRepository;
         this.orcamentoRepository = orcamentoRepository;
         this.usuarioAutenticadoService = usuarioAutenticadoService;
         this.ambienteConfigurado = AmbienteNotaFiscal.valueOf(ambienteConfigurado);
+        this.certificadoService = certificadoService;
+        this.xmlService = xmlService;
+        this.sefinNacionalClient = sefinNacionalClient;
     }
 
     @Transactional
@@ -258,7 +268,42 @@ public class NotaFiscalServicoService {
 
         validarRascunho(nota, "Somente notas em rascunho podem ser enviadas");
 
-        throw new BusinessRuleException("Envio à prefeitura ainda não disponível nesta instalação — requer certificado digital A1/A3 configurado (Fase 2)");
+        if (!certificadoService.isConfigurado()) {
+
+            throw new BusinessRuleException("Envio à prefeitura ainda não disponível nesta instalação — requer certificado digital A1/A3 configurado (Fase 2)");
+        }
+
+        /*
+         * Recadastro fiscal pode ter sido alterado depois que a nota foi
+         * criada — mesma checagem defensiva de gerarPayload, agora antes de
+         * uma chamada real e irreversível ao Sistema Nacional de NFS-e.
+         */
+        validarCadastroFiscalCompleto(nota.getEmpresa(), nota.getOrdemServico().getCliente());
+
+        String xmlAssinado = xmlService.montarEAssinarDps(nota, certificadoService.obterChavePrivada(), certificadoService.obterCertificado());
+
+        EnvioDpsResultado resultado = sefinNacionalClient.enviarDps(certificadoService.obterClienteHttp(), xmlAssinado, nota.getAmbiente());
+
+        if (resultado.sucesso()) {
+
+            nota.setChaveAcesso(resultado.chaveAcesso());
+
+            nota.setNfseXmlRetornado(resultado.nfseXmlRetornado());
+
+            nota.setDataEmissao(LocalDateTime.now());
+
+            nota.setStatus(StatusNotaFiscalServico.AUTORIZADA);
+
+        } else {
+
+            nota.setMotivoRejeicao(resultado.mensagemErro());
+
+            nota.setStatus(StatusNotaFiscalServico.REJEITADA);
+        }
+
+        NotaFiscalServico notaAtualizada = notaFiscalServicoRepository.save(nota);
+
+        return converterParaResponse(notaAtualizada);
     }
 
     @Transactional
@@ -307,7 +352,7 @@ public class NotaFiscalServicoService {
 
     private NotaFiscalServicoResponseDTO converterParaResponse(NotaFiscalServico nota) {
 
-        return new NotaFiscalServicoResponseDTO(nota.getId(), nota.getOrdemServico().getId(), nota.getOrcamento().getId(), nota.getStatus(), nota.getAmbiente(), nota.getDiscriminacaoServico(), nota.getCodigoServico(), nota.getAliquotaIss(), nota.getValorServico(), nota.getValorIss(), nota.getNumeroNota(), nota.getCodigoVerificacao(), nota.getMotivoRejeicao(), nota.getDataEmissao(), nota.getPayloadMontado(), nota.getDataCriacao());
+        return new NotaFiscalServicoResponseDTO(nota.getId(), nota.getOrdemServico().getId(), nota.getOrcamento().getId(), nota.getStatus(), nota.getAmbiente(), nota.getDiscriminacaoServico(), nota.getCodigoServico(), nota.getAliquotaIss(), nota.getValorServico(), nota.getValorIss(), nota.getNumeroNota(), nota.getCodigoVerificacao(), nota.getChaveAcesso(), nota.getMotivoRejeicao(), nota.getDataEmissao(), nota.getPayloadMontado(), nota.getDataCriacao());
     }
 
     /*

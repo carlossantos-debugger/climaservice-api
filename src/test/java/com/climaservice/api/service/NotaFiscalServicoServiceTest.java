@@ -1,5 +1,7 @@
 package com.climaservice.api.service;
 
+import com.climaservice.api.client.EnvioDpsResultado;
+import com.climaservice.api.client.SefinNacionalClient;
 import com.climaservice.api.dto.NotaFiscalServicoRequestDTO;
 import com.climaservice.api.dto.NotaFiscalServicoResponseDTO;
 import com.climaservice.api.entity.*;
@@ -8,6 +10,8 @@ import com.climaservice.api.exception.ResourceNotFoundException;
 import com.climaservice.api.repository.NotaFiscalServicoRepository;
 import com.climaservice.api.repository.OrcamentoRepository;
 import com.climaservice.api.repository.OrdemServicoRepository;
+
+import java.net.http.HttpClient;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +28,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,13 +61,22 @@ class NotaFiscalServicoServiceTest {
     @Mock
     private Orcamento orcamento;
 
+    @Mock
+    private NfseCertificadoService certificadoService;
+
+    @Mock
+    private NfseXmlService xmlService;
+
+    @Mock
+    private SefinNacionalClient sefinNacionalClient;
+
     private NotaFiscalServicoService service;
 
     private final Endereco enderecoCompleto = new Endereco("Rua Exemplo", "100", null, "Centro", "Brusque", "SC", "88350000");
 
     private void construirService() {
 
-        service = new NotaFiscalServicoService(notaFiscalServicoRepository, ordemServicoRepository, orcamentoRepository, usuarioAutenticadoService, AMBIENTE_PADRAO);
+        service = new NotaFiscalServicoService(notaFiscalServicoRepository, ordemServicoRepository, orcamentoRepository, usuarioAutenticadoService, AMBIENTE_PADRAO, certificadoService, xmlService, sefinNacionalClient);
     }
 
     private void prepararEmpresaAtual() {
@@ -450,6 +464,82 @@ class NotaFiscalServicoServiceTest {
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> service.enviar(1L));
 
         assertEquals("Envio à prefeitura ainda não disponível nesta instalação — requer certificado digital A1/A3 configurado (Fase 2)", exception.getMessage());
+    }
+
+    @Test
+    void deveAutorizarNotaAoEnviarComCertificadoConfiguradoESefinAceitando() {
+
+        construirService();
+
+        prepararEmpresaAtual();
+
+        NotaFiscalServico nota = prepararNotaExistente(StatusNotaFiscalServico.RASCUNHO);
+
+        when(ordemServico.getCliente()).thenReturn(cliente);
+
+        when(empresa.getEndereco()).thenReturn(enderecoCompleto);
+
+        when(empresa.getRegimeTributario()).thenReturn(RegimeTributario.SIMPLES_NACIONAL);
+
+        when(cliente.getEndereco()).thenReturn(enderecoCompleto);
+
+        when(certificadoService.isConfigurado()).thenReturn(true);
+
+        HttpClient clienteHttpFalso = mock(HttpClient.class);
+
+        when(certificadoService.obterClienteHttp()).thenReturn(clienteHttpFalso);
+
+        when(xmlService.montarEAssinarDps(eq(nota), any(), any())).thenReturn("<DPS/>");
+
+        when(sefinNacionalClient.enviarDps(clienteHttpFalso, "<DPS/>", AmbienteNotaFiscal.HOMOLOGACAO)).thenReturn(EnvioDpsResultado.autorizada("35260900000000000000550010000000011000000019", "<nfse/>"));
+
+        when(notaFiscalServicoRepository.save(nota)).thenReturn(nota);
+
+        NotaFiscalServicoResponseDTO response = service.enviar(1L);
+
+        assertEquals(StatusNotaFiscalServico.AUTORIZADA, response.status());
+
+        assertEquals("35260900000000000000550010000000011000000019", response.chaveAcesso());
+
+        assertNotNull(response.dataEmissao());
+    }
+
+    @Test
+    void deveRejeitarNotaQuandoSefinRecusarOEnvio() {
+
+        construirService();
+
+        prepararEmpresaAtual();
+
+        NotaFiscalServico nota = prepararNotaExistente(StatusNotaFiscalServico.RASCUNHO);
+
+        when(ordemServico.getCliente()).thenReturn(cliente);
+
+        when(empresa.getEndereco()).thenReturn(enderecoCompleto);
+
+        when(empresa.getRegimeTributario()).thenReturn(RegimeTributario.SIMPLES_NACIONAL);
+
+        when(cliente.getEndereco()).thenReturn(enderecoCompleto);
+
+        when(certificadoService.isConfigurado()).thenReturn(true);
+
+        HttpClient clienteHttpFalso = mock(HttpClient.class);
+
+        when(certificadoService.obterClienteHttp()).thenReturn(clienteHttpFalso);
+
+        when(xmlService.montarEAssinarDps(eq(nota), any(), any())).thenReturn("<DPS/>");
+
+        when(sefinNacionalClient.enviarDps(clienteHttpFalso, "<DPS/>", AmbienteNotaFiscal.HOMOLOGACAO)).thenReturn(EnvioDpsResultado.rejeitada("CNPJ do prestador não habilitado"));
+
+        when(notaFiscalServicoRepository.save(nota)).thenReturn(nota);
+
+        NotaFiscalServicoResponseDTO response = service.enviar(1L);
+
+        assertEquals(StatusNotaFiscalServico.REJEITADA, response.status());
+
+        assertEquals("CNPJ do prestador não habilitado", response.motivoRejeicao());
+
+        assertNull(response.chaveAcesso());
     }
 
     @Test

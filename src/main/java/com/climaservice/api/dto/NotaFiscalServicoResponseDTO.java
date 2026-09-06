@@ -25,6 +25,7 @@ public record NotaFiscalServicoResponseDTO(
 
         String numeroNota,
         String codigoVerificacao,
+        String chaveAcesso,
         String motivoRejeicao,
         LocalDateTime dataEmissao,
 
