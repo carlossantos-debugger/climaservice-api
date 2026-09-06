@@ -1,0 +1,35 @@
+.cliente-form {
+  max-width: 720px;
+
+  h1 {
+    margin: 0 0 24px;
+  }
+
+  h2 {
+    margin: 8px 0 8px;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  &__row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+
+    mat-form-field {
+      flex: 1;
+      min-width: 160px;
+    }
+  }
+
+  &__field--wide {
+    flex: 3;
+  }
+
+  &__acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+  }
+}

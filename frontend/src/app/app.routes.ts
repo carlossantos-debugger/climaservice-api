@@ -2,10 +2,8 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
-import { Dashboard } from './features/dashboard/dashboard';
 import { Login } from './features/auth/login/login';
 import { MainLayout } from './layout/main-layout/main-layout';
-import { PlaceholderPage } from './shared/components/placeholder-page/placeholder-page';
 
 export const routes: Routes = [
   { path: 'login', component: Login, canActivate: [guestGuard] },
@@ -15,61 +13,83 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
-      { path: 'dashboard', component: Dashboard },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard)
+      },
       {
         path: 'clientes',
-        component: PlaceholderPage,
-        data: { title: 'Clientes', icon: 'groups' }
+        loadComponent: () => import('./features/clientes/cliente-list/cliente-list').then((m) => m.ClienteList)
+      },
+      {
+        path: 'clientes/novo',
+        loadComponent: () => import('./features/clientes/cliente-form/cliente-form').then((m) => m.ClienteForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
+      },
+      {
+        path: 'clientes/:id/editar',
+        loadComponent: () => import('./features/clientes/cliente-form/cliente-form').then((m) => m.ClienteForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
       },
       {
         path: 'equipamentos',
-        component: PlaceholderPage,
+        loadComponent: () =>
+          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
         data: { title: 'Equipamentos', icon: 'ac_unit' }
       },
       {
         path: 'ordens-servico',
-        component: PlaceholderPage,
+        loadComponent: () =>
+          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
         data: { title: 'Ordens de Serviço', icon: 'build' }
       },
       {
         path: 'agendamentos',
-        component: PlaceholderPage,
+        loadComponent: () =>
+          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
         data: { title: 'Agendamentos', icon: 'event' }
       },
       {
         path: 'manutencoes-preventivas',
-        component: PlaceholderPage,
+        loadComponent: () =>
+          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
         data: { title: 'Manutenção Preventiva', icon: 'event_repeat' }
       },
       {
         path: 'servicos',
-        component: PlaceholderPage,
+        loadComponent: () =>
+          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
         data: { title: 'Serviços', icon: 'design_services' }
       },
       {
         path: 'produtos',
-        component: PlaceholderPage,
+        loadComponent: () =>
+          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
         data: { title: 'Produtos', icon: 'inventory_2' }
       },
       {
         path: 'orcamentos',
-        component: PlaceholderPage,
+        loadComponent: () =>
+          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
         data: { title: 'Orçamentos', icon: 'request_quote' }
       },
       {
         path: 'pagamentos',
-        component: PlaceholderPage,
+        loadComponent: () =>
+          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
         data: { title: 'Pagamentos', icon: 'payments' }
       },
       {
         path: 'usuarios',
-        component: PlaceholderPage,
+        loadComponent: () =>
+          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
         canActivate: [roleGuard('ADMIN')],
         data: { title: 'Usuários', icon: 'manage_accounts' }
       },
       {
         path: 'empresa',
-        component: PlaceholderPage,
+        loadComponent: () =>
+          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
         data: { title: 'Empresa', icon: 'apartment' }
       }
     ]
