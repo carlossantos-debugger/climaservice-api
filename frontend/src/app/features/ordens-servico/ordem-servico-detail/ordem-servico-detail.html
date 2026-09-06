@@ -1,0 +1,107 @@
+@if (loading()) {
+  <app-loading message="Carregando ordem de serviço..." />
+} @else if (errorMessage(); as message) {
+  <app-error-message [message]="message" />
+} @else if (os(); as os) {
+  <div class="os-detail">
+    <div class="os-detail__header">
+      <h1>OS #{{ os.id }}</h1>
+      <mat-chip>{{ statusLabel[os.status] }}</mat-chip>
+    </div>
+
+    <section class="os-detail__info">
+      <div>
+        <span class="os-detail__label">Cliente</span>
+        <span>{{ os.clienteNome }}</span>
+      </div>
+      <div>
+        <span class="os-detail__label">Equipamento</span>
+        <span>{{ os.equipamentoMarca }} {{ os.equipamentoModelo }}</span>
+      </div>
+      <div>
+        <span class="os-detail__label">Abertura</span>
+        <span>{{ os.dataAbertura | date: 'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      @if (os.dataConclusao) {
+        <div>
+          <span class="os-detail__label">Conclusão</span>
+          <span>{{ os.dataConclusao | date: 'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+      }
+    </section>
+
+    <section class="os-detail__descricao">
+      <h2>Descrição do problema</h2>
+      <p>{{ os.descricaoProblema }}</p>
+    </section>
+
+    @if (podeGerenciar() && proximosStatus().length > 0) {
+      <section class="os-detail__transicoes">
+        <h2>Alterar status</h2>
+        <div class="os-detail__botoes-status">
+          @for (status of proximosStatus(); track status) {
+            <button
+              mat-stroked-button
+              [disabled]="alterandoStatus()"
+              (click)="alterarStatus(status)"
+            >
+              {{ statusLabel[status] }}
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    <section class="os-detail__diagnostico">
+      <h2>Diagnóstico</h2>
+      <form [formGroup]="diagnosticoForm" (ngSubmit)="salvarDiagnostico()">
+        <mat-form-field appearance="outline" class="os-detail__diagnostico-campo">
+          <textarea
+            matInput
+            formControlName="diagnostico"
+            rows="4"
+            [readonly]="!diagnosticoEditavel()"
+            placeholder="Ainda sem diagnóstico registrado."
+          ></textarea>
+        </mat-form-field>
+        @if (diagnosticoEditavel()) {
+          <button mat-flat-button color="primary" type="submit" [disabled]="salvandoDiagnostico()">
+            {{ salvandoDiagnostico() ? 'Salvando...' : 'Salvar diagnóstico' }}
+          </button>
+        }
+      </form>
+    </section>
+
+    <section class="os-detail__historico">
+      <h2>Histórico de status</h2>
+      @if (historicoStatus().length === 0) {
+        <p class="os-detail__vazio">Nenhuma alteração de status registrada.</p>
+      } @else {
+        <mat-list>
+          @for (item of historicoStatus(); track item.id) {
+            <mat-list-item>
+              <span matListItemTitle>{{ statusLabel[item.statusAnterior] }} → {{ statusLabel[item.statusNovo] }}</span>
+              <span matListItemLine>{{ item.usuarioNome }} — {{ item.dataAlteracao | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </mat-list-item>
+          }
+        </mat-list>
+      }
+    </section>
+
+    <section class="os-detail__historico">
+      <h2>Histórico de diagnóstico</h2>
+      @if (historicoDiagnostico().length === 0) {
+        <p class="os-detail__vazio">Nenhuma alteração de diagnóstico registrada.</p>
+      } @else {
+        <mat-list>
+          @for (item of historicoDiagnostico(); track item.id) {
+            <mat-list-item>
+              <span matListItemTitle>{{ item.diagnosticoNovo }}</span>
+              <span matListItemLine>{{ item.usuarioNome }} — {{ item.dataAlteracao | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </mat-list-item>
+          }
+        </mat-list>
+      }
+    </section>
+  </div>
+}
