@@ -1,0 +1,56 @@
+.os-detail {
+  max-width: 720px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    h1 {
+      margin: 0;
+    }
+  }
+
+  &__info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  &__label {
+    font-size: 0.75rem;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  section {
+    margin-bottom: 24px;
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+  }
+
+  &__botoes-status {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__diagnostico-campo {
+    width: 100%;
+  }
+
+  &__vazio {
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 0.875rem;
+  }
+}

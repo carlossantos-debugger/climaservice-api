@@ -1,0 +1,53 @@
+<div class="os-form">
+  <h1>Nova ordem de serviço</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <mat-form-field appearance="outline">
+      <mat-label>Cliente</mat-label>
+      <input matInput formControlName="clienteBusca" [matAutocomplete]="autoCliente" />
+      <mat-autocomplete #autoCliente="matAutocomplete">
+        @for (cliente of clientesEncontrados(); track cliente.id) {
+          <mat-option [value]="cliente.nome" (onSelectionChange)="selecionarCliente(cliente)">
+            {{ cliente.nome }} — {{ cliente.cpfCnpj }}
+          </mat-option>
+        }
+      </mat-autocomplete>
+      @if (form.controls.clienteBusca.invalid && form.controls.clienteBusca.touched) {
+        <mat-error>O cliente é obrigatório.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Equipamento</mat-label>
+      <mat-select formControlName="equipamentoId">
+        @for (equipamento of equipamentosDoCliente(); track equipamento.id) {
+          <mat-option [value]="equipamento.id">{{ equipamento.marca }} {{ equipamento.modelo }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls.equipamentoId.invalid && form.controls.equipamentoId.touched) {
+        <mat-error>O equipamento é obrigatório.</mat-error>
+      } @else if (!carregandoEquipamentos() && equipamentosDoCliente().length === 0) {
+        <mat-hint>Selecione um cliente com equipamentos ativos.</mat-hint>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Descrição do problema</mat-label>
+      <textarea matInput formControlName="descricaoProblema" rows="4"></textarea>
+      @if (form.controls.descricaoProblema.invalid && form.controls.descricaoProblema.touched) {
+        <mat-error>A descrição do problema é obrigatória.</mat-error>
+      }
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <app-error-message [message]="message" />
+    }
+
+    <div class="os-form__acoes">
+      <button mat-stroked-button type="button" (click)="cancelar()">Cancelar</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Salvando...' : 'Abrir OS' }}
+      </button>
+    </div>
+  </form>
+</div>

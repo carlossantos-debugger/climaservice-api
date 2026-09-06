@@ -1,11 +1,12 @@
-/**
- * Espelha StatusOrdemServico.java. Definido aqui pois a feature `ordens-servico`
- * (branch própria) ainda não existe — quando ela chegar, mova este tipo para o
- * model dela e importe daqui.
- */
-export type StatusOrdemServico = 'ABERTA' | 'EM_ANDAMENTO' | 'AGUARDANDO_CLIENTE' | 'CONCLUIDA' | 'CANCELADA';
+import { StatusOrdemServico } from './ordem-servico.model';
 
-/** Espelha StatusAgendamento.java — mesmo motivo do tipo acima. */
+export type { StatusOrdemServico };
+
+/**
+ * Espelha StatusAgendamento.java. Definido aqui pois a feature `agendamentos`
+ * (branch própria) ainda não existe — quando ela chegar, mova este tipo para o
+ * model dela e importe daqui, como já foi feito para StatusOrdemServico acima.
+ */
 export type StatusAgendamento = 'AGENDADO' | 'CONFIRMADO' | 'EM_ATENDIMENTO' | 'CONCLUIDO' | 'CANCELADO';
 
 /** Espelha DashboardResumoResponseDTO.java. */
