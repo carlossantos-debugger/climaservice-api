@@ -1,0 +1,25 @@
+.equipamento-form {
+  max-width: 720px;
+
+  h1 {
+    margin: 0 0 24px;
+  }
+
+  &__row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+
+    mat-form-field {
+      flex: 1;
+      min-width: 200px;
+    }
+  }
+
+  &__acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+  }
+}

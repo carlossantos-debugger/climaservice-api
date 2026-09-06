@@ -1,0 +1,103 @@
+<div class="equipamento-list">
+  <div class="equipamento-list__header">
+    <h1>Equipamentos</h1>
+    @if (podeEditar()) {
+      <a mat-flat-button color="primary" routerLink="/equipamentos/novo">
+        <mat-icon>add</mat-icon>
+        Novo equipamento
+      </a>
+    }
+  </div>
+
+  <form class="equipamento-list__filtros" [formGroup]="filtroForm" (ngSubmit)="buscar()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Marca</mat-label>
+      <input matInput formControlName="marca" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Modelo</mat-label>
+      <input matInput formControlName="modelo" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Status</mat-label>
+      <mat-select formControlName="status">
+        <mat-option value="">Todos</mat-option>
+        <mat-option value="ATIVO">Ativo</mat-option>
+        <mat-option value="INATIVO">Inativo</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <button mat-stroked-button type="submit">
+      <mat-icon>search</mat-icon>
+      Buscar
+    </button>
+  </form>
+
+  @if (loading()) {
+    <app-loading message="Carregando equipamentos..." />
+  } @else if (errorMessage(); as message) {
+    <app-error-message [message]="message" />
+  } @else if (equipamentos().length === 0) {
+    <app-empty-state icon="ac_unit" title="Nenhum equipamento encontrado" />
+  } @else {
+    <table mat-table [dataSource]="equipamentos()" class="equipamento-list__table">
+      <ng-container matColumnDef="marca">
+        <th mat-header-cell *matHeaderCellDef>Marca</th>
+        <td mat-cell *matCellDef="let equipamento">{{ equipamento.marca }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="modelo">
+        <th mat-header-cell *matHeaderCellDef>Modelo</th>
+        <td mat-cell *matCellDef="let equipamento">{{ equipamento.modelo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="capacidadeBtu">
+        <th mat-header-cell *matHeaderCellDef>BTUs</th>
+        <td mat-cell *matCellDef="let equipamento">{{ equipamento.capacidadeBtu }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="cliente">
+        <th mat-header-cell *matHeaderCellDef>Cliente</th>
+        <td mat-cell *matCellDef="let equipamento">{{ equipamento.clienteNome }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let equipamento">
+          <mat-chip [color]="equipamento.status === 'ATIVO' ? 'primary' : undefined">
+            {{ equipamento.status === 'ATIVO' ? 'Ativo' : 'Inativo' }}
+          </mat-chip>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acoes">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let equipamento" class="equipamento-list__acoes">
+          @if (podeEditar()) {
+            <a mat-icon-button [routerLink]="['/equipamentos', equipamento.id, 'editar']" aria-label="Editar">
+              <mat-icon>edit</mat-icon>
+            </a>
+            <button
+              mat-icon-button
+              (click)="alternarStatus(equipamento)"
+              [attr.aria-label]="equipamento.status === 'ATIVO' ? 'Inativar' : 'Ativar'"
+              [matTooltip]="equipamento.status === 'ATIVO' ? 'Inativar' : 'Ativar'"
+            >
+              <mat-icon>{{ equipamento.status === 'ATIVO' ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+            </button>
+          }
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      [length]="totalElements()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPage($event)"
+    />
+  }
+</div>

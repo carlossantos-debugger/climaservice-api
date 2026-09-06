@@ -34,8 +34,19 @@ export const routes: Routes = [
       {
         path: 'equipamentos',
         loadComponent: () =>
-          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
-        data: { title: 'Equipamentos', icon: 'ac_unit' }
+          import('./features/equipamentos/equipamento-list/equipamento-list').then((m) => m.EquipamentoList)
+      },
+      {
+        path: 'equipamentos/novo',
+        loadComponent: () =>
+          import('./features/equipamentos/equipamento-form/equipamento-form').then((m) => m.EquipamentoForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
+      },
+      {
+        path: 'equipamentos/:id/editar',
+        loadComponent: () =>
+          import('./features/equipamentos/equipamento-form/equipamento-form').then((m) => m.EquipamentoForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
       },
       {
         path: 'ordens-servico',

@@ -1,0 +1,75 @@
+<div class="equipamento-form">
+  <h1>{{ modoEdicao() ? 'Editar equipamento' : 'Novo equipamento' }}</h1>
+
+  @if (loading()) {
+    <app-loading message="Carregando equipamento..." />
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="equipamento-form__row">
+        <mat-form-field appearance="outline">
+          <mat-label>Cliente</mat-label>
+          <input matInput formControlName="clienteBusca" [matAutocomplete]="autoCliente" />
+          <mat-autocomplete #autoCliente="matAutocomplete">
+            @for (cliente of clientesEncontrados(); track cliente.id) {
+              <mat-option [value]="cliente.nome" (onSelectionChange)="selecionarCliente(cliente)">
+                {{ cliente.nome }} — {{ cliente.cpfCnpj }}
+              </mat-option>
+            }
+          </mat-autocomplete>
+          @if (form.controls.clienteBusca.invalid && form.controls.clienteBusca.touched) {
+            <mat-error>O cliente é obrigatório.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="equipamento-form__row">
+        <mat-form-field appearance="outline">
+          <mat-label>Marca</mat-label>
+          <input matInput formControlName="marca" />
+          @if (form.controls.marca.invalid && form.controls.marca.touched) {
+            <mat-error>A marca é obrigatória.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Modelo</mat-label>
+          <input matInput formControlName="modelo" />
+          @if (form.controls.modelo.invalid && form.controls.modelo.touched) {
+            <mat-error>O modelo é obrigatório.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Capacidade (BTUs)</mat-label>
+          <input matInput type="number" formControlName="capacidadeBtu" />
+          @if (form.controls.capacidadeBtu.invalid && form.controls.capacidadeBtu.touched) {
+            <mat-error>Informe uma capacidade válida.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="equipamento-form__row">
+        <mat-form-field appearance="outline">
+          <mat-label>Número de série</mat-label>
+          <input matInput formControlName="numeroSerie" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Local de instalação</mat-label>
+          <input matInput formControlName="localInstalacao" />
+        </mat-form-field>
+      </div>
+
+      @if (errorMessage(); as message) {
+        <app-error-message [message]="message" />
+      }
+
+      <div class="equipamento-form__acoes">
+        <button mat-stroked-button type="button" (click)="cancelar()">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Salvando...' : 'Salvar' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>
