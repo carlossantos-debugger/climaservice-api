@@ -820,13 +820,18 @@ O backend calcula informações como:
 
 # Nota Fiscal de Serviço Eletrônica (NFS-e)
 
-> 🚧 **Fase 1 apenas.** Esta funcionalidade cobre o modelo de dados e o fluxo de rascunho da nota
-> fiscal — **não emite uma NFS-e real**. A emissão real exige integração com o Sistema Nacional de
-> NFS-e (município de Brusque/SC está migrando para esse padrão federal) via mTLS com certificado
-> digital ICP-Brasil A1/A3 vinculado ao CNPJ da empresa, que ainda não está configurado nesta
-> instalação. A Fase 2 (cliente mTLS, assinatura XML do DPS, chamada real ao ambiente de
-> homologação/produção) fica para quando houver certificado — o endpoint `enviar` já existe e é
-> validado, mas retorna um erro explícito informando que ainda não está disponível.
+> 🚧 **Fase 2 implementada, não validada contra o serviço real.** O mecanismo completo de emissão
+> está no código — cliente mTLS a partir de um certificado PKCS#12 (`NfseCertificadoService`),
+> montagem e assinatura digital XML-DSig da DPS (`NfseXmlService`) e chamada HTTP ao Sefin Nacional
+> (`SefinNacionalClient`) — mas esta instalação não possui certificado digital ICP-Brasil A1/A3
+> vinculado ao CNPJ da empresa, então nunca foi exercitado contra o ambiente de homologação/produção
+> de verdade. Enquanto `NOTA_FISCAL_CERTIFICADO_CAMINHO` não estiver configurado, `POST .../enviar`
+> continua retornando o mesmo erro explícito de indisponibilidade da Fase 1. Os nomes de campo do
+> contrato HTTP (`dpsXmlGZipB64`, `chaveAcesso`, `nfseXmlGZipB64`) e a estrutura do XML da DPS foram
+> levantados por pesquisa pública sobre o padrão NFS-e Nacional, não confirmados ao vivo contra o
+> Swagger/XSD oficial — a cobertura de testes prova a mecânica (assinatura XML válida, contrato
+> JSON/gzip/base64, mapeamento de sucesso/erro) contra um servidor HTTP local, não contra o serviço
+> do governo.
 
 Cada Ordem de Serviço com orçamento aprovado pode gerar uma nota fiscal de serviço, cujo rascunho é
 preenchido, validado e armazenado localmente antes de (futuramente) ser enviado à prefeitura.
@@ -873,11 +878,29 @@ pendentes.
 | GET | `/notas-fiscais-servico/{id}` | Buscar nota por ID |
 | PUT | `/notas-fiscais-servico/{id}` | Atualizar rascunho (`ADMIN`, `ATENDENTE`) |
 | POST | `/notas-fiscais-servico/{id}/gerar-payload` | Montar/validar o payload interno, sem enviar (`ADMIN`, `ATENDENTE`) |
-| POST | `/notas-fiscais-servico/{id}/enviar` | Enviar à prefeitura — **ainda não disponível (Fase 2)** (`ADMIN`, `ATENDENTE`) |
-| PATCH | `/notas-fiscais-servico/{id}/cancelar` | Cancelar rascunho (`ADMIN`, `ATENDENTE`) |
+| POST | `/notas-fiscais-servico/{id}/enviar` | Assinar e enviar ao Sefin Nacional — **retorna erro explícito enquanto não há certificado configurado** (`ADMIN`, `ATENDENTE`) |
+| PATCH | `/notas-fiscais-servico/{id}/cancelar` | Cancelar rascunho ou nota rejeitada (`ADMIN`, `ATENDENTE`) |
 
 A criação de novas notas usa o ambiente configurado em `NOTA_FISCAL_AMBIENTE` (`HOMOLOGACAO` por
-padrão, ou `PRODUCAO`) — nesta fase esse valor só fica registrado na nota, sem nenhuma chamada real.
+padrão, ou `PRODUCAO`), que também decide qual URL do Sefin Nacional `enviar` chama quando há
+certificado configurado.
+
+### Configuração (Fase 2)
+
+| Variável | Descrição |
+|---|---|
+| `NOTA_FISCAL_CERTIFICADO_CAMINHO` | Caminho do arquivo PKCS#12 (`.p12`) do certificado A1. Vazio (padrão) = Fase 2 desligada. |
+| `NOTA_FISCAL_CERTIFICADO_SENHA` | Senha do arquivo PKCS#12. |
+| `NOTA_FISCAL_SEFIN_URL_HOMOLOGACAO` / `NOTA_FISCAL_SEFIN_URL_PRODUCAO` | URLs do Sefin Nacional; os padrões devem ser reconferidos contra a documentação oficial antes de um envio real. |
+
+### `enviar` — fluxo quando há certificado configurado
+
+1. Revalida que a nota está em `RASCUNHO` e que o cadastro fiscal de empresa/cliente continua completo.
+2. Monta o XML da DPS a partir dos dados da nota e assina digitalmente (XML-DSig, enveloped, RSA-SHA256) com a chave privada do certificado.
+3. Envia o XML (comprimido em gzip e codificado em base64) ao Sefin Nacional via mTLS.
+4. Sucesso: grava `chaveAcesso` e o XML da NFS-e retornado, marca `dataEmissao` e muda o status para `AUTORIZADA`.
+5. Recusa: grava `motivoRejeicao` e muda o status para `REJEITADA` (pode ser cancelada depois, liberando a ordem de serviço para uma nova tentativa).
+6. Falha de comunicação (timeout, certificado inválido, etc.): lança um erro — a nota permanece em `RASCUNHO` para nova tentativa.
 
 ---
 
@@ -1730,11 +1753,14 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Configuração de CORS para o futuro frontend Angular
 - [x] Índices de FK ausentes em tabelas de histórico e itens de orçamento
 - [x] Nota Fiscal de Serviço Eletrônica — Fase 1 (modelo de dados, cadastro fiscal, rascunho e payload interno)
+- [x] Nota Fiscal de Serviço Eletrônica — Fase 2 (cliente mTLS, assinatura XML-DSig da DPS, chamada ao
+  Sefin Nacional; mecanismo completo, mas nunca validado contra o serviço real por falta de
+  certificado digital ICP-Brasil — ver seção NFS-e acima)
 
 ## Próximas etapas
 
-- [ ] Nota Fiscal de Serviço Eletrônica — Fase 2 (integração real com o Sistema Nacional de NFS-e via
-  mTLS + certificado digital A1/A3, pendente de certificado)
+- [ ] Validar a integração NFS-e Fase 2 contra o ambiente de homologação real assim que houver
+  certificado digital A1/A3 (confirmar contrato exato do Swagger/XSD oficial)
 - [ ] Frontend com Angular
 
 ---
