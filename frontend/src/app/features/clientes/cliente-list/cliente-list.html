@@ -1,0 +1,83 @@
+<div class="cliente-list">
+  <div class="cliente-list__header">
+    <h1>Clientes</h1>
+    @if (podeEditar()) {
+      <a mat-flat-button color="primary" routerLink="/clientes/novo">
+        <mat-icon>add</mat-icon>
+        Novo cliente
+      </a>
+    }
+  </div>
+
+  <form class="cliente-list__filtros" [formGroup]="filtroForm" (ngSubmit)="buscar()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Nome</mat-label>
+      <input matInput formControlName="nome" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>CPF/CNPJ</mat-label>
+      <input matInput formControlName="cpfCnpj" />
+    </mat-form-field>
+    <button mat-stroked-button type="submit">
+      <mat-icon>search</mat-icon>
+      Buscar
+    </button>
+  </form>
+
+  @if (loading()) {
+    <app-loading message="Carregando clientes..." />
+  } @else if (errorMessage(); as message) {
+    <app-error-message [message]="message" />
+  } @else if (clientes().length === 0) {
+    <app-empty-state icon="groups" title="Nenhum cliente encontrado" />
+  } @else {
+    <table mat-table [dataSource]="clientes()" class="cliente-list__table">
+      <ng-container matColumnDef="nome">
+        <th mat-header-cell *matHeaderCellDef>Nome</th>
+        <td mat-cell *matCellDef="let cliente">{{ cliente.nome }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="cpfCnpj">
+        <th mat-header-cell *matHeaderCellDef>CPF/CNPJ</th>
+        <td mat-cell *matCellDef="let cliente">{{ cliente.cpfCnpj }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="telefone">
+        <th mat-header-cell *matHeaderCellDef>Telefone</th>
+        <td mat-cell *matCellDef="let cliente">{{ cliente.telefone || '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="email">
+        <th mat-header-cell *matHeaderCellDef>E-mail</th>
+        <td mat-cell *matCellDef="let cliente">{{ cliente.email || '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="acoes">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let cliente" class="cliente-list__acoes">
+          @if (podeEditar()) {
+            <a mat-icon-button [routerLink]="['/clientes', cliente.id, 'editar']" aria-label="Editar">
+              <mat-icon>edit</mat-icon>
+            </a>
+          }
+          @if (podeExcluir()) {
+            <button mat-icon-button (click)="excluir(cliente)" aria-label="Excluir">
+              <mat-icon>delete</mat-icon>
+            </button>
+          }
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      [length]="totalElements()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPage($event)"
+    />
+  }
+</div>

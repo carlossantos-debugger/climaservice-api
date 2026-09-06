@@ -1,0 +1,119 @@
+<div class="cliente-form">
+  <h1>{{ modoEdicao() ? 'Editar cliente' : 'Novo cliente' }}</h1>
+
+  @if (loading()) {
+    <app-loading message="Carregando cliente..." />
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="cliente-form__row">
+        <mat-form-field appearance="outline">
+          <mat-label>Nome</mat-label>
+          <input matInput formControlName="nome" />
+          @if (form.controls.nome.invalid && form.controls.nome.touched) {
+            <mat-error>
+              @if (form.controls.nome.hasError('required')) {
+                O nome é obrigatório.
+              } @else {
+                O nome deve ter no máximo 150 caracteres.
+              }
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>CPF/CNPJ</mat-label>
+          <input matInput formControlName="cpfCnpj" />
+          @if (form.controls.cpfCnpj.invalid && form.controls.cpfCnpj.touched) {
+            <mat-error>
+              @if (form.controls.cpfCnpj.hasError('required')) {
+                O CPF/CNPJ é obrigatório.
+              } @else {
+                Informe 11 (CPF) ou 14 (CNPJ) dígitos, sem pontuação.
+              }
+            </mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="cliente-form__row">
+        <mat-form-field appearance="outline">
+          <mat-label>Telefone</mat-label>
+          <input matInput formControlName="telefone" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>E-mail</mat-label>
+          <input matInput type="email" formControlName="email" />
+          @if (form.controls.email.invalid && form.controls.email.touched) {
+            <mat-error>E-mail inválido.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="cliente-form__row">
+        <mat-form-field appearance="outline">
+          <mat-label>Inscrição municipal</mat-label>
+          <input matInput formControlName="inscricaoMunicipal" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Inscrição estadual</mat-label>
+          <input matInput formControlName="inscricaoEstadual" />
+        </mat-form-field>
+      </div>
+
+      <h2>Endereço</h2>
+      <div class="cliente-form__row" formGroupName="endereco">
+        <mat-form-field appearance="outline" class="cliente-form__field--wide">
+          <mat-label>Logradouro</mat-label>
+          <input matInput formControlName="logradouro" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Número</mat-label>
+          <input matInput formControlName="numero" />
+        </mat-form-field>
+      </div>
+
+      <div class="cliente-form__row" formGroupName="endereco">
+        <mat-form-field appearance="outline">
+          <mat-label>Complemento</mat-label>
+          <input matInput formControlName="complemento" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Bairro</mat-label>
+          <input matInput formControlName="bairro" />
+        </mat-form-field>
+      </div>
+
+      <div class="cliente-form__row" formGroupName="endereco">
+        <mat-form-field appearance="outline">
+          <mat-label>Cidade</mat-label>
+          <input matInput formControlName="cidade" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>UF</mat-label>
+          <input matInput formControlName="uf" maxlength="2" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>CEP</mat-label>
+          <input matInput formControlName="cep" />
+        </mat-form-field>
+      </div>
+
+      @if (errorMessage(); as message) {
+        <app-error-message [message]="message" />
+      }
+
+      <div class="cliente-form__acoes">
+        <button mat-stroked-button type="button" (click)="cancelar()">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Salvando...' : 'Salvar' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>
