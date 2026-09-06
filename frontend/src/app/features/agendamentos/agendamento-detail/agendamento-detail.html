@@ -1,0 +1,85 @@
+@if (loading()) {
+  <app-loading message="Carregando agendamento..." />
+} @else if (errorMessage(); as message) {
+  <app-error-message [message]="message" />
+} @else if (agendamento(); as agendamento) {
+  <div class="agendamento-detail">
+    <div class="agendamento-detail__header">
+      <h1>Agendamento #{{ agendamento.id }}</h1>
+      <mat-chip>{{ statusLabel[agendamento.status] }}</mat-chip>
+    </div>
+
+    <section class="agendamento-detail__info">
+      <div>
+        <span class="agendamento-detail__label">Ordem de serviço</span>
+        <a [routerLink]="['/ordens-servico', agendamento.ordemServicoId]">OS #{{ agendamento.ordemServicoId }}</a>
+      </div>
+      <div>
+        <span class="agendamento-detail__label">Técnico</span>
+        <span>{{ agendamento.tecnicoNome }}</span>
+      </div>
+      <div>
+        <span class="agendamento-detail__label">Início</span>
+        <span>{{ agendamento.dataHoraInicio | date: 'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      <div>
+        <span class="agendamento-detail__label">Fim</span>
+        <span>{{ agendamento.dataHoraFim | date: 'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      @if (agendamento.observacao) {
+        <div>
+          <span class="agendamento-detail__label">Observação</span>
+          <span>{{ agendamento.observacao }}</span>
+        </div>
+      }
+    </section>
+
+    @if (podeAlterarStatus() && proximosStatus().length > 0) {
+      <section>
+        <h2>Alterar status</h2>
+        <div class="agendamento-detail__botoes-status">
+          @for (status of proximosStatus(); track status) {
+            <button mat-stroked-button [disabled]="alterandoStatus()" (click)="alterarStatus(status)">
+              {{ statusLabel[status] }}
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    @if (podeReagendar()) {
+      <section>
+        <h2>Reagendar</h2>
+        <form [formGroup]="reagendarForm" (ngSubmit)="reagendar()" class="agendamento-detail__reagendar">
+          <mat-form-field appearance="outline">
+            <mat-label>Novo início</mat-label>
+            <input matInput type="datetime-local" formControlName="dataHoraInicio" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Novo fim</mat-label>
+            <input matInput type="datetime-local" formControlName="dataHoraFim" />
+          </mat-form-field>
+          <button mat-flat-button color="primary" type="submit" [disabled]="reagendando()">
+            {{ reagendando() ? 'Salvando...' : 'Reagendar' }}
+          </button>
+        </form>
+      </section>
+    }
+
+    <section>
+      <h2>Histórico de status</h2>
+      @if (historico().length === 0) {
+        <p class="agendamento-detail__vazio">Nenhuma alteração de status registrada.</p>
+      } @else {
+        <mat-list>
+          @for (item of historico(); track item.id) {
+            <mat-list-item>
+              <span matListItemTitle>{{ statusLabel[item.statusAnterior] }} → {{ statusLabel[item.statusNovo] }}</span>
+              <span matListItemLine>{{ item.usuarioNome }} — {{ item.dataAlteracao | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </mat-list-item>
+          }
+        </mat-list>
+      }
+    </section>
+  </div>
+}

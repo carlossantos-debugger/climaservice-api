@@ -1,0 +1,99 @@
+<div class="agendamento-list">
+  <div class="agendamento-list__header">
+    <h1>Agendamentos</h1>
+    @if (podeCriar()) {
+      <a mat-flat-button color="primary" routerLink="/agendamentos/novo">
+        <mat-icon>add</mat-icon>
+        Novo agendamento
+      </a>
+    }
+  </div>
+
+  <form class="agendamento-list__filtros" [formGroup]="filtroForm" (ngSubmit)="buscar()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Status</mat-label>
+      <mat-select formControlName="status">
+        <mat-option value="">Todos</mat-option>
+        @for (status of statusOptions; track status) {
+          <mat-option [value]="status">{{ statusLabel[status] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Técnico</mat-label>
+      <mat-select formControlName="tecnicoId">
+        <mat-option [value]="''">Todos</mat-option>
+        @for (tecnico of tecnicos(); track tecnico.id) {
+          <mat-option [value]="tecnico.id">{{ tecnico.nome }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>De</mat-label>
+      <input matInput [matDatepicker]="pickerInicial" formControlName="dataInicial" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerInicial"></mat-datepicker-toggle>
+      <mat-datepicker #pickerInicial></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Até</mat-label>
+      <input matInput [matDatepicker]="pickerFinal" formControlName="dataFinal" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerFinal"></mat-datepicker-toggle>
+      <mat-datepicker #pickerFinal></mat-datepicker>
+    </mat-form-field>
+
+    <button mat-stroked-button type="submit">
+      <mat-icon>search</mat-icon>
+      Buscar
+    </button>
+  </form>
+
+  @if (loading()) {
+    <app-loading message="Carregando agendamentos..." />
+  } @else if (errorMessage(); as message) {
+    <app-error-message [message]="message" />
+  } @else if (agendamentos().length === 0) {
+    <app-empty-state icon="event" title="Nenhum agendamento encontrado" />
+  } @else {
+    <table class="agendamento-list__table">
+      <thead>
+        <tr>
+          <th>OS</th>
+          <th>Técnico</th>
+          <th>Início</th>
+          <th>Fim</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (agendamento of agendamentos(); track agendamento.id) {
+          <tr [routerLink]="['/agendamentos', agendamento.id]" class="agendamento-list__row">
+            <td>OS #{{ agendamento.ordemServicoId }}</td>
+            <td>{{ agendamento.tecnicoNome }}</td>
+            <td>{{ agendamento.dataHoraInicio | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>{{ agendamento.dataHoraFim | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>
+              <mat-chip>{{ statusLabel[agendamento.status] }}</mat-chip>
+            </td>
+            <td>
+              <a mat-icon-button [routerLink]="['/agendamentos', agendamento.id]" aria-label="Ver detalhes">
+                <mat-icon>chevron_right</mat-icon>
+              </a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <mat-paginator
+      [length]="totalElements()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPage($event)"
+    />
+  }
+</div>

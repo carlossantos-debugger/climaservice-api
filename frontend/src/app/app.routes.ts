@@ -69,8 +69,18 @@ export const routes: Routes = [
       {
         path: 'agendamentos',
         loadComponent: () =>
-          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
-        data: { title: 'Agendamentos', icon: 'event' }
+          import('./features/agendamentos/agendamento-list/agendamento-list').then((m) => m.AgendamentoList)
+      },
+      {
+        path: 'agendamentos/novo',
+        loadComponent: () =>
+          import('./features/agendamentos/agendamento-form/agendamento-form').then((m) => m.AgendamentoForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
+      },
+      {
+        path: 'agendamentos/:id',
+        loadComponent: () =>
+          import('./features/agendamentos/agendamento-detail/agendamento-detail').then((m) => m.AgendamentoDetail)
       },
       {
         path: 'manutencoes-preventivas',
