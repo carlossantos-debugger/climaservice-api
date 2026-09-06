@@ -1,0 +1,29 @@
+.plano-form {
+  max-width: 560px;
+
+  h1 {
+    margin: 0 0 24px;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__row {
+    display: flex;
+    gap: 16px;
+
+    mat-form-field {
+      flex: 1;
+    }
+  }
+
+  &__acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+  }
+}

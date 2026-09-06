@@ -1,0 +1,27 @@
+@if (loading()) {
+  <app-loading message="Carregando execuções..." />
+} @else if (errorMessage(); as message) {
+  <app-error-message [message]="message" />
+} @else if (plano(); as plano) {
+  <div class="plano-execucoes">
+    <h1>Execuções — {{ plano.equipamentoMarca }} {{ plano.equipamentoModelo }}</h1>
+
+    @if (execucoes().length === 0) {
+      <app-empty-state icon="history" title="Nenhuma execução registrada" />
+    } @else {
+      <mat-list>
+        @for (execucao of execucoes(); track execucao.id) {
+          <mat-list-item>
+            <span matListItemTitle>
+              <a [routerLink]="['/ordens-servico', execucao.ordemServicoId]">OS #{{ execucao.ordemServicoId }}</a>
+              — referência {{ execucao.dataReferencia | date: 'dd/MM/yyyy' }}
+            </span>
+            <span matListItemLine>
+              Gerada por {{ execucao.usuarioNome }} em {{ execucao.dataExecucao | date: 'dd/MM/yyyy HH:mm' }}
+            </span>
+          </mat-list-item>
+        }
+      </mat-list>
+    }
+  </div>
+}

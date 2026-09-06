@@ -1,0 +1,82 @@
+<div class="plano-list">
+  <div class="plano-list__header">
+    <h1>Manutenção Preventiva</h1>
+    @if (podeGerenciar()) {
+      <a mat-flat-button color="primary" routerLink="/manutencoes-preventivas/novo">
+        <mat-icon>add</mat-icon>
+        Novo plano
+      </a>
+    }
+  </div>
+
+  <form class="plano-list__filtros" [formGroup]="filtroForm">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Status</mat-label>
+      <mat-select formControlName="ativo">
+        <mat-option value="">Todos</mat-option>
+        <mat-option value="true">Ativos</mat-option>
+        <mat-option value="false">Inativos</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </form>
+
+  @if (loading()) {
+    <app-loading message="Carregando planos de manutenção..." />
+  } @else if (errorMessage(); as message) {
+    <app-error-message [message]="message" />
+  } @else if (planos().length === 0) {
+    <app-empty-state icon="event_repeat" title="Nenhum plano de manutenção encontrado" />
+  } @else {
+    <table class="plano-list__table">
+      <thead>
+        <tr>
+          <th>Equipamento</th>
+          <th>Técnico padrão</th>
+          <th>Intervalo</th>
+          <th>Próxima execução</th>
+          <th>Última execução</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (plano of planos(); track plano.id) {
+          <tr>
+            <td>{{ plano.equipamentoMarca }} {{ plano.equipamentoModelo }}</td>
+            <td>{{ plano.tecnicoPadraoNome || '—' }}</td>
+            <td>{{ plano.intervaloMeses }} {{ plano.intervaloMeses === 1 ? 'mês' : 'meses' }}</td>
+            <td>{{ plano.proximaExecucao ? (plano.proximaExecucao | date: 'dd/MM/yyyy') : '—' }}</td>
+            <td>{{ plano.ultimaExecucao ? (plano.ultimaExecucao | date: 'dd/MM/yyyy') : '—' }}</td>
+            <td>
+              <mat-chip [color]="plano.ativo ? 'primary' : undefined">{{ plano.ativo ? 'Ativo' : 'Inativo' }}</mat-chip>
+            </td>
+            <td class="plano-list__acoes">
+              <a
+                mat-icon-button
+                [routerLink]="['/manutencoes-preventivas', plano.id, 'execucoes']"
+                matTooltip="Histórico de execuções"
+              >
+                <mat-icon>history</mat-icon>
+              </a>
+              @if (podeGerenciar()) {
+                <button mat-icon-button (click)="gerarOrdemServico(plano)" matTooltip="Gerar OS agora">
+                  <mat-icon>build_circle</mat-icon>
+                </button>
+                <a mat-icon-button [routerLink]="['/manutencoes-preventivas', plano.id, 'editar']" aria-label="Editar">
+                  <mat-icon>edit</mat-icon>
+                </a>
+                <button
+                  mat-icon-button
+                  (click)="alternarAtivo(plano)"
+                  [matTooltip]="plano.ativo ? 'Inativar' : 'Ativar'"
+                >
+                  <mat-icon>{{ plano.ativo ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

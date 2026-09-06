@@ -1,0 +1,84 @@
+<div class="plano-form">
+  <h1>{{ modoEdicao() ? 'Editar plano de manutenção' : 'Novo plano de manutenção' }}</h1>
+
+  @if (loading()) {
+    <app-loading message="Carregando plano..." />
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (modoEdicao()) {
+        <mat-form-field appearance="outline">
+          <mat-label>Equipamento</mat-label>
+          <input matInput [value]="equipamentoAtualLabel()" disabled />
+          <mat-hint>O equipamento não pode ser alterado depois de criado.</mat-hint>
+        </mat-form-field>
+      } @else {
+        <mat-form-field appearance="outline">
+          <mat-label>Equipamento (marca)</mat-label>
+          <input matInput formControlName="equipamentoBusca" [matAutocomplete]="autoEquipamento" />
+          <mat-autocomplete #autoEquipamento="matAutocomplete">
+            @for (equipamento of equipamentosEncontrados(); track equipamento.id) {
+              <mat-option [value]="equipamento.marca + ' ' + equipamento.modelo" (onSelectionChange)="selecionarEquipamento(equipamento)">
+                {{ equipamento.marca }} {{ equipamento.modelo }} — {{ equipamento.clienteNome }}
+              </mat-option>
+            }
+          </mat-autocomplete>
+          @if (form.controls.equipamentoBusca.invalid && form.controls.equipamentoBusca.touched) {
+            <mat-error>O equipamento é obrigatório.</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      @if (semPermissaoParaListarTecnicos()) {
+        <mat-form-field appearance="outline">
+          <mat-label>ID do técnico padrão (opcional)</mat-label>
+          <input matInput type="number" formControlName="tecnicoPadraoId" />
+          <mat-hint>Seu perfil não pode listar os técnicos da empresa — peça o ID a um administrador.</mat-hint>
+        </mat-form-field>
+      } @else {
+        <mat-form-field appearance="outline">
+          <mat-label>Técnico padrão (opcional)</mat-label>
+          <mat-select formControlName="tecnicoPadraoId">
+            <mat-option [value]="null">Nenhum</mat-option>
+            @for (tecnico of tecnicos(); track tecnico.id) {
+              <mat-option [value]="tecnico.id">{{ tecnico.nome }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+
+      <div class="plano-form__row">
+        <mat-form-field appearance="outline">
+          <mat-label>Intervalo (meses)</mat-label>
+          <input matInput type="number" formControlName="intervaloMeses" />
+          @if (form.controls.intervaloMeses.invalid && form.controls.intervaloMeses.touched) {
+            <mat-error>Informe um intervalo válido.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Próxima execução</mat-label>
+          <input matInput type="date" formControlName="proximaExecucao" />
+          @if (form.controls.proximaExecucao.invalid && form.controls.proximaExecucao.touched) {
+            <mat-error>A próxima execução é obrigatória.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Observação</mat-label>
+        <textarea matInput formControlName="observacao" rows="3"></textarea>
+      </mat-form-field>
+
+      @if (errorMessage(); as message) {
+        <app-error-message [message]="message" />
+      }
+
+      <div class="plano-form__acoes">
+        <button mat-stroked-button type="button" (click)="cancelar()">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Salvando...' : 'Salvar' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>
