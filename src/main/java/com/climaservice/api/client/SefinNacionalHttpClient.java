@@ -2,6 +2,7 @@ package com.climaservice.api.client;
 
 import com.climaservice.api.entity.AmbienteNotaFiscal;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -66,7 +68,7 @@ public class SefinNacionalHttpClient implements SefinNacionalClient {
 
             return EnvioDpsResultado.rejeitada(extrairMensagemErro(resposta));
 
-        } catch (java.io.IOException | InterruptedException exception) {
+        } catch (IOException | InterruptedException exception) {
 
             if (exception instanceof InterruptedException) {
 
@@ -93,7 +95,7 @@ public class SefinNacionalHttpClient implements SefinNacionalClient {
                 }
             }
 
-        } catch (Exception ignorada) {
+        } catch (JsonProcessingException ignorada) {
 
             // corpo não é JSON — cai para a mensagem genérica abaixo
         }
@@ -108,7 +110,7 @@ public class SefinNacionalHttpClient implements SefinNacionalClient {
         return valor == null || valor.isNull() ? null : valor.asText();
     }
 
-    private String gzipBase64(String texto) throws java.io.IOException {
+    private String gzipBase64(String texto) throws IOException {
 
         ByteArrayOutputStream bytesComprimidos = new ByteArrayOutputStream();
 
@@ -120,7 +122,7 @@ public class SefinNacionalHttpClient implements SefinNacionalClient {
         return Base64.getEncoder().encodeToString(bytesComprimidos.toByteArray());
     }
 
-    private String ungzipBase64(String base64GZip) throws java.io.IOException {
+    private String ungzipBase64(String base64GZip) throws IOException {
 
         byte[] bytesComprimidos = Base64.getDecoder().decode(base64GZip);
 

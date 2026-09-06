@@ -7,9 +7,15 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.http.HttpClient;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Enumeration;
@@ -58,7 +64,7 @@ public class NfseCertificadoService {
 
             return HttpClient.newBuilder().sslContext(sslContext).connectTimeout(Duration.ofSeconds(30)).build();
 
-        } catch (Exception exception) {
+        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException | KeyManagementException exception) {
 
             throw new IllegalStateException("Falha ao configurar cliente mTLS com o certificado digital configurado", exception);
         }
@@ -72,7 +78,7 @@ public class NfseCertificadoService {
 
             return (PrivateKey) keyStore.getKey(alias, senha);
 
-        } catch (Exception exception) {
+        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException exception) {
 
             throw new IllegalStateException("Falha ao obter a chave privada do certificado digital configurado", exception);
         }
@@ -86,7 +92,7 @@ public class NfseCertificadoService {
 
             return (X509Certificate) keyStore.getCertificate(alias);
 
-        } catch (Exception exception) {
+        } catch (KeyStoreException exception) {
 
             throw new IllegalStateException("Falha ao obter o certificado digital configurado", exception);
         }
@@ -121,7 +127,7 @@ public class NfseCertificadoService {
 
             this.keyStore = ks;
 
-        } catch (Exception exception) {
+        } catch (IOException | KeyStoreException | NoSuchAlgorithmException | CertificateException exception) {
 
             throw new IllegalStateException("Falha ao carregar o certificado digital configurado em " + caminho, exception);
         }

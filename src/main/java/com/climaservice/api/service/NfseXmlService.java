@@ -18,22 +18,28 @@ import javax.xml.crypto.dsig.SignatureMethod;
 import javax.xml.crypto.dsig.SignedInfo;
 import javax.xml.crypto.dsig.Transform;
 import javax.xml.crypto.dsig.XMLSignature;
+import javax.xml.crypto.dsig.XMLSignatureException;
 import javax.xml.crypto.dsig.XMLSignatureFactory;
 import javax.xml.crypto.dsig.dom.DOMSignContext;
 import javax.xml.crypto.dsig.keyinfo.KeyInfo;
 import javax.xml.crypto.dsig.keyinfo.KeyInfoFactory;
 import javax.xml.crypto.dsig.keyinfo.X509Data;
+import javax.xml.crypto.MarshalException;
 import javax.xml.crypto.dsig.spec.C14NMethodParameterSpec;
 import javax.xml.crypto.dsig.spec.TransformParameterSpec;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import java.io.StringWriter;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
@@ -62,13 +68,13 @@ public class NfseXmlService {
 
             return serializar(documento);
 
-        } catch (Exception exception) {
+        } catch (ParserConfigurationException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | MarshalException | XMLSignatureException | TransformerException exception) {
 
             throw new IllegalStateException("Falha ao montar/assinar o XML da DPS", exception);
         }
     }
 
-    private Document construirDocumentoDps(NotaFiscalServico nota) throws Exception {
+    private Document construirDocumentoDps(NotaFiscalServico nota) throws ParserConfigurationException {
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
@@ -189,7 +195,7 @@ public class NfseXmlService {
         return valor == null ? "" : valor.replaceAll("\\D", "");
     }
 
-    private void assinar(Document documento, PrivateKey chavePrivada, X509Certificate certificado) throws Exception {
+    private void assinar(Document documento, PrivateKey chavePrivada, X509Certificate certificado) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, MarshalException, XMLSignatureException {
 
         String idDps = documento.getDocumentElement().getFirstChild().getAttributes().getNamedItem("Id").getNodeValue();
 
@@ -212,7 +218,7 @@ public class NfseXmlService {
         assinatura.sign(contexto);
     }
 
-    private String serializar(Document documento) throws Exception {
+    private String serializar(Document documento) throws TransformerException {
 
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
 
