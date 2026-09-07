@@ -162,9 +162,7 @@ export const routes: Routes = [
       },
       {
         path: 'empresa',
-        loadComponent: () =>
-          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
-        data: { title: 'Empresa', icon: 'apartment' }
+        loadComponent: () => import('./features/empresa/empresa-page/empresa-page').then((m) => m.EmpresaPage)
       }
     ]
   },
