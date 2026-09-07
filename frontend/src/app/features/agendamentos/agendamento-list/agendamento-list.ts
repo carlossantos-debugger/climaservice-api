@@ -15,7 +15,7 @@ import { AgendamentoService } from '../../../core/services/agendamento.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { UsuarioService } from '../../../core/services/usuario.service';
 import { AgendamentoResponse, StatusAgendamento } from '../../../core/models/agendamento.model';
-import { Usuario } from '../../../core/models/usuario.model';
+import { TecnicoResumo } from '../../../core/models/usuario.model';
 import { extractErrorMessage } from '../../../core/utils/api-error.util';
 import { fimDoDia, inicioDoDia } from '../../../core/utils/date-filtro.util';
 import { EmptyState } from '../../../shared/components/empty-state/empty-state';
@@ -75,15 +75,12 @@ export class AgendamentoList implements OnInit {
   readonly pageSize = signal(20);
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
-  readonly tecnicos = signal<Usuario[]>([]);
+  readonly tecnicos = signal<TecnicoResumo[]>([]);
 
   readonly podeCriar = computed(() => this.authService.hasRole('ADMIN', 'ATENDENTE'));
 
   ngOnInit(): void {
-    this.usuarioService.listarTodos().subscribe({
-      next: (usuarios) => this.tecnicos.set(usuarios.filter((u) => u.role === 'TECNICO' && u.ativo)),
-      error: () => this.tecnicos.set([])
-    });
+    this.usuarioService.listarTecnicos().subscribe((tecnicos) => this.tecnicos.set(tecnicos));
     this.carregar();
   }
 

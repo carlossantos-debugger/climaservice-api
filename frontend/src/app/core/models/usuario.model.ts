@@ -19,3 +19,13 @@ export interface UsuarioCadastroRequest {
   senha: string;
   role: Role;
 }
+
+/**
+ * Espelha TecnicoResumoDTO.java (GET /tecnicos) — só id+nome dos técnicos ativos da empresa,
+ * aberto a ADMIN/ATENDENTE/TECNICO. Diferente de GET /usuarios (que devolve todos os perfis,
+ * mas é ADMIN-only): use este para qualquer seletor de técnico em formulários.
+ */
+export interface TecnicoResumo {
+  id: number;
+  nome: string;
+}
