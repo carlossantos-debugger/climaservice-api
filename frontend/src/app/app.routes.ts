@@ -119,9 +119,17 @@ export const routes: Routes = [
       },
       {
         path: 'produtos',
-        loadComponent: () =>
-          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
-        data: { title: 'Produtos', icon: 'inventory_2' }
+        loadComponent: () => import('./features/produtos/produto-list/produto-list').then((m) => m.ProdutoList)
+      },
+      {
+        path: 'produtos/novo',
+        loadComponent: () => import('./features/produtos/produto-form/produto-form').then((m) => m.ProdutoForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
+      },
+      {
+        path: 'produtos/:id/editar',
+        loadComponent: () => import('./features/produtos/produto-form/produto-form').then((m) => m.ProdutoForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
       },
       {
         path: 'orcamentos',

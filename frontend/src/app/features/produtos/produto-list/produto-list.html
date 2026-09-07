@@ -1,0 +1,57 @@
+<div class="produto-list">
+  <div class="produto-list__header">
+    <h1>Produtos</h1>
+    @if (podeGerenciar()) {
+      <a mat-flat-button color="primary" routerLink="/produtos/novo">
+        <mat-icon>add</mat-icon>
+        Novo produto
+      </a>
+    }
+  </div>
+
+  @if (loading()) {
+    <app-loading message="Carregando produtos..." />
+  } @else if (errorMessage(); as message) {
+    <app-error-message [message]="message" />
+  } @else if (produtos().length === 0) {
+    <app-empty-state icon="inventory_2" title="Nenhum produto cadastrado" />
+  } @else {
+    <table class="produto-list__table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Descrição</th>
+          <th>Valor padrão</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (produto of produtos(); track produto.id) {
+          <tr>
+            <td>{{ produto.nome }}</td>
+            <td>{{ produto.descricao || '—' }}</td>
+            <td>{{ produto.valorPadrao | currency: 'BRL' }}</td>
+            <td>
+              <mat-chip [color]="produto.ativo ? 'primary' : undefined">{{ produto.ativo ? 'Ativo' : 'Inativo' }}</mat-chip>
+            </td>
+            <td class="produto-list__acoes">
+              @if (podeGerenciar()) {
+                <a mat-icon-button [routerLink]="['/produtos', produto.id, 'editar']" aria-label="Editar">
+                  <mat-icon>edit</mat-icon>
+                </a>
+                <button
+                  mat-icon-button
+                  (click)="alternarAtivo(produto)"
+                  [attr.aria-label]="produto.ativo ? 'Inativar' : 'Ativar'"
+                >
+                  <mat-icon>{{ produto.ativo ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
