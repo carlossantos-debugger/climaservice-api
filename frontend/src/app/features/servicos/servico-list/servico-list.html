@@ -1,0 +1,57 @@
+<div class="servico-list">
+  <div class="servico-list__header">
+    <h1>Serviços</h1>
+    @if (podeGerenciar()) {
+      <a mat-flat-button color="primary" routerLink="/servicos/novo">
+        <mat-icon>add</mat-icon>
+        Novo serviço
+      </a>
+    }
+  </div>
+
+  @if (loading()) {
+    <app-loading message="Carregando serviços..." />
+  } @else if (errorMessage(); as message) {
+    <app-error-message [message]="message" />
+  } @else if (servicos().length === 0) {
+    <app-empty-state icon="design_services" title="Nenhum serviço cadastrado" />
+  } @else {
+    <table class="servico-list__table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Descrição</th>
+          <th>Valor padrão</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (servico of servicos(); track servico.id) {
+          <tr>
+            <td>{{ servico.nome }}</td>
+            <td>{{ servico.descricao || '—' }}</td>
+            <td>{{ servico.valorPadrao | currency: 'BRL' }}</td>
+            <td>
+              <mat-chip [color]="servico.ativo ? 'primary' : undefined">{{ servico.ativo ? 'Ativo' : 'Inativo' }}</mat-chip>
+            </td>
+            <td class="servico-list__acoes">
+              @if (podeGerenciar()) {
+                <a mat-icon-button [routerLink]="['/servicos', servico.id, 'editar']" aria-label="Editar">
+                  <mat-icon>edit</mat-icon>
+                </a>
+                <button
+                  mat-icon-button
+                  (click)="alternarAtivo(servico)"
+                  [attr.aria-label]="servico.ativo ? 'Inativar' : 'Ativar'"
+                >
+                  <mat-icon>{{ servico.ativo ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
