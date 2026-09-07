@@ -1,5 +1,6 @@
 package com.climaservice.api.integration;
 
+import com.climaservice.api.dto.TecnicoResumoDTO;
 import com.climaservice.api.dto.UsuarioResponseDTO;
 import com.climaservice.api.exception.BusinessRuleException;
 import com.climaservice.api.exception.ResourceNotFoundException;
@@ -47,14 +48,17 @@ class UsuarioMultiTenancyIntegrationTest extends AbstractIntegrationTest {
                        (8002, 'Empresa B', NULL, true, CURRENT_TIMESTAMP)
                 """);
 
-        // Empresa A tem dois ADMINs ativos, um TECNICO e um ATENDENTE.
+        // Empresa A tem dois ADMINs ativos, um TECNICO ativo, um TECNICO inativo e um ATENDENTE.
         jdbcTemplate.update("""
                 INSERT INTO usuario (id, ativo, data_criacao, email, nome, role, senha_hash, empresa_id)
                 VALUES
                     (9001, true, CURRENT_TIMESTAMP, 'admin-a@teste.com', 'Administrador A', 'ADMIN', 'hash', 8001),
                     (9002, true, CURRENT_TIMESTAMP, 'tecnico-a@teste.com', 'Técnico A', 'TECNICO', 'hash', 8001),
                     (9003, true, CURRENT_TIMESTAMP, 'admin-a-2@teste.com', 'Administrador A2', 'ADMIN', 'hash', 8001),
-                    (9101, true, CURRENT_TIMESTAMP, 'admin-b@teste.com', 'Administrador B', 'ADMIN', 'hash', 8002)
+                    (9004, false, CURRENT_TIMESTAMP, 'tecnico-a-inativo@teste.com', 'Técnico A Inativo', 'TECNICO', 'hash', 8001),
+                    (9005, true, CURRENT_TIMESTAMP, 'atendente-a@teste.com', 'Atendente A', 'ATENDENTE', 'hash', 8001),
+                    (9101, true, CURRENT_TIMESTAMP, 'admin-b@teste.com', 'Administrador B', 'ADMIN', 'hash', 8002),
+                    (9102, true, CURRENT_TIMESTAMP, 'tecnico-b@teste.com', 'Técnico B', 'TECNICO', 'hash', 8002)
                 """);
 
         autenticar("admin-a@teste.com", "ADMIN");
@@ -81,9 +85,9 @@ class UsuarioMultiTenancyIntegrationTest extends AbstractIntegrationTest {
 
         List<UsuarioResponseDTO> usuarios = usuarioService.listarTodos();
 
-        assertEquals(3, usuarios.size());
+        assertEquals(5, usuarios.size());
 
-        assertTrue(usuarios.stream().noneMatch(u -> u.id().equals(9101L)));
+        assertTrue(usuarios.stream().noneMatch(u -> u.id().equals(9101L) || u.id().equals(9102L)));
     }
 
     @Test
@@ -162,8 +166,32 @@ class UsuarioMultiTenancyIntegrationTest extends AbstractIntegrationTest {
 
         List<UsuarioResponseDTO> usuarios = usuarioService.listarTodos();
 
-        assertEquals(1, usuarios.size());
+        assertEquals(2, usuarios.size());
 
-        assertEquals(9101L, usuarios.get(0).id());
+        assertTrue(usuarios.stream().anyMatch(u -> u.id().equals(9101L)));
+    }
+
+    @Test
+    void deveListarSomenteTecnicosAtivosDaEmpresaAutenticada() {
+
+        List<TecnicoResumoDTO> tecnicos = usuarioService.listarTecnicos();
+
+        assertEquals(1, tecnicos.size());
+
+        assertEquals(9002L, tecnicos.get(0).id());
+
+        assertEquals("Técnico A", tecnicos.get(0).nome());
+    }
+
+    @Test
+    void deveIsolarTecnicosPorEmpresa() {
+
+        autenticar("admin-b@teste.com", "ADMIN");
+
+        List<TecnicoResumoDTO> tecnicos = usuarioService.listarTecnicos();
+
+        assertEquals(1, tecnicos.size());
+
+        assertEquals(9102L, tecnicos.get(0).id());
     }
 }

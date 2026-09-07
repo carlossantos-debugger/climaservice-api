@@ -1,5 +1,6 @@
 package com.climaservice.api.service;
 
+import com.climaservice.api.dto.TecnicoResumoDTO;
 import com.climaservice.api.dto.UsuarioCadastroRequestDTO;
 import com.climaservice.api.dto.UsuarioResponseDTO;
 import com.climaservice.api.entity.Empresa;
@@ -70,6 +71,20 @@ public class UsuarioService {
         Long empresaId = obterEmpresaIdAtual();
 
         return usuarioRepository.findByEmpresa_IdOrderByNomeAsc(empresaId).stream().map(this::converterParaResponse).toList();
+    }
+
+    /*
+     * Endpoint separado e mais aberto que /usuarios (ADMIN only): ATENDENTE
+     * precisa poder escolher um técnico ao criar um agendamento, mas não deve
+     * enxergar a lista completa de usuários (e-mail, status, outras roles).
+     * Só nome e ID, só técnicos ativos.
+     */
+    @Transactional(readOnly = true)
+    public List<TecnicoResumoDTO> listarTecnicos() {
+
+        Long empresaId = obterEmpresaIdAtual();
+
+        return usuarioRepository.findByEmpresa_IdAndRoleAndAtivoTrueOrderByNomeAsc(empresaId, RoleUsuario.TECNICO).stream().map(usuario -> new TecnicoResumoDTO(usuario.getId(), usuario.getNome())).toList();
     }
 
     @Transactional(readOnly = true)
