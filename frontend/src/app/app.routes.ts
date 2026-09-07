@@ -84,9 +84,24 @@ export const routes: Routes = [
       },
       {
         path: 'manutencoes-preventivas',
+        loadComponent: () => import('./features/manutencoes-preventivas/plano-list/plano-list').then((m) => m.PlanoList)
+      },
+      {
+        path: 'manutencoes-preventivas/novo',
         loadComponent: () =>
-          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
-        data: { title: 'Manutenção Preventiva', icon: 'event_repeat' }
+          import('./features/manutencoes-preventivas/plano-form/plano-form').then((m) => m.PlanoForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
+      },
+      {
+        path: 'manutencoes-preventivas/:id/editar',
+        loadComponent: () =>
+          import('./features/manutencoes-preventivas/plano-form/plano-form').then((m) => m.PlanoForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
+      },
+      {
+        path: 'manutencoes-preventivas/:id/execucoes',
+        loadComponent: () =>
+          import('./features/manutencoes-preventivas/plano-execucoes/plano-execucoes').then((m) => m.PlanoExecucoes)
       },
       {
         path: 'servicos',
