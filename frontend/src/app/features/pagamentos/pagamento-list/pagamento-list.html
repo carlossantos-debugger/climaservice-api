@@ -1,0 +1,98 @@
+<div class="pagamento-list">
+  <h1>Pagamentos</h1>
+
+  <form class="pagamento-list__filtros" [formGroup]="filtroForm" (ngSubmit)="buscar()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Status</mat-label>
+      <mat-select formControlName="status">
+        <mat-option value="">Todos</mat-option>
+        @for (status of statusOptions; track status) {
+          <mat-option [value]="status">{{ statusLabel[status] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Forma</mat-label>
+      <mat-select formControlName="formaPagamento">
+        <mat-option value="">Todas</mat-option>
+        @for (forma of formaOptions; track forma) {
+          <mat-option [value]="forma">{{ formaLabel[forma] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>De</mat-label>
+      <input matInput [matDatepicker]="pickerInicial" formControlName="dataInicial" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerInicial"></mat-datepicker-toggle>
+      <mat-datepicker #pickerInicial></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Até</mat-label>
+      <input matInput [matDatepicker]="pickerFinal" formControlName="dataFinal" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerFinal"></mat-datepicker-toggle>
+      <mat-datepicker #pickerFinal></mat-datepicker>
+    </mat-form-field>
+
+    <button mat-stroked-button type="submit">
+      <mat-icon>search</mat-icon>
+      Buscar
+    </button>
+  </form>
+
+  @if (loading()) {
+    <app-loading message="Carregando pagamentos..." />
+  } @else if (errorMessage(); as message) {
+    <app-error-message [message]="message" />
+  } @else if (pagamentos().length === 0) {
+    <app-empty-state icon="payments" title="Nenhum pagamento encontrado" />
+  } @else {
+    <table class="pagamento-list__table">
+      <thead>
+        <tr>
+          <th>Orçamento</th>
+          <th>Valor</th>
+          <th>Forma</th>
+          <th>Status</th>
+          <th>Criado em</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (pagamento of pagamentos(); track pagamento.id) {
+          <tr>
+            <td>
+              <a [routerLink]="['/orcamentos', pagamento.orcamentoId]">Orçamento #{{ pagamento.orcamentoId }}</a>
+            </td>
+            <td>{{ pagamento.valor | currency: 'BRL' }}</td>
+            <td>{{ formaLabel[pagamento.formaPagamento] }}</td>
+            <td>
+              <mat-chip>{{ statusLabel[pagamento.status] }}</mat-chip>
+            </td>
+            <td>{{ pagamento.dataCriacao | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td class="pagamento-list__acoes">
+              @if (podeGerenciar() && pagamento.status === 'PENDENTE') {
+                <button mat-icon-button (click)="confirmar(pagamento)" aria-label="Confirmar">
+                  <mat-icon>check_circle</mat-icon>
+                </button>
+                <button mat-icon-button (click)="cancelar(pagamento)" aria-label="Cancelar">
+                  <mat-icon>cancel</mat-icon>
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <mat-paginator
+      [length]="totalElements()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPage($event)"
+    />
+  }
+</div>

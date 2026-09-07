@@ -191,5 +191,96 @@
         </mat-list>
       }
     </section>
+
+    @if (aprovado()) {
+      <section class="orcamento-detail__pagamentos">
+        <h2>Pagamentos</h2>
+
+        @if (resumoPagamentos(); as resumo) {
+          <div class="orcamento-detail__resumo-pagamentos">
+            <div>
+              <span class="orcamento-detail__label">Total pago</span>
+              <span>{{ resumo.totalPago | currency: 'BRL' }}</span>
+            </div>
+            <div>
+              <span class="orcamento-detail__label">Total pendente</span>
+              <span>{{ resumo.totalPendente | currency: 'BRL' }}</span>
+            </div>
+            <div>
+              <span class="orcamento-detail__label">Saldo restante</span>
+              <span>{{ resumo.saldoRestante | currency: 'BRL' }}</span>
+            </div>
+            <div>
+              <span class="orcamento-detail__label">Disponível para novo pagamento</span>
+              <span>{{ resumo.valorDisponivelParaNovoPagamento | currency: 'BRL' }}</span>
+            </div>
+          </div>
+        }
+
+        @if (pagamentos().length === 0) {
+          <p class="orcamento-detail__vazio">Nenhum pagamento registrado.</p>
+        } @else {
+          <table class="orcamento-detail__tabela">
+            <thead>
+              <tr>
+                <th>Valor</th>
+                <th>Forma</th>
+                <th>Status</th>
+                <th>Criado em</th>
+                @if (podeGerenciar()) {
+                  <th></th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (pagamento of pagamentos(); track pagamento.id) {
+                <tr>
+                  <td>{{ pagamento.valor | currency: 'BRL' }}</td>
+                  <td>{{ formaPagamentoLabel[pagamento.formaPagamento] }}</td>
+                  <td>
+                    <mat-chip>{{ statusPagamentoLabel[pagamento.status] }}</mat-chip>
+                  </td>
+                  <td>{{ pagamento.dataCriacao | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  @if (podeGerenciar()) {
+                    <td class="orcamento-detail__acoes-item">
+                      @if (pagamento.status === 'PENDENTE') {
+                        <button mat-icon-button (click)="confirmarPagamento(pagamento)" aria-label="Confirmar">
+                          <mat-icon>check_circle</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="cancelarPagamento(pagamento)" aria-label="Cancelar">
+                          <mat-icon>cancel</mat-icon>
+                        </button>
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        @if (podeRegistrarPagamento()) {
+          <form [formGroup]="pagamentoForm" (ngSubmit)="registrarPagamento()" class="orcamento-detail__pagamento-form">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Valor</mat-label>
+              <input matInput type="number" step="0.01" formControlName="valor" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Forma</mat-label>
+              <mat-select formControlName="formaPagamento">
+                @for (forma of formasPagamento; track forma) {
+                  <mat-option [value]="forma">{{ formaPagamentoLabel[forma] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Observação</mat-label>
+              <input matInput formControlName="observacao" />
+            </mat-form-field>
+            <button mat-stroked-button type="submit" [disabled]="registrandoPagamento()">Registrar</button>
+          </form>
+        }
+      </section>
+    }
   </div>
 }

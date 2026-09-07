@@ -13,6 +13,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { OrcamentoService } from '../../../core/services/orcamento.service';
+import { PagamentoService } from '../../../core/services/pagamento.service';
 import { ProdutoService } from '../../../core/services/produto.service';
 import { ServicoService } from '../../../core/services/servico.service';
 import {
@@ -22,6 +23,7 @@ import {
   StatusOrcamento,
   TRANSICOES_STATUS_ORCAMENTO
 } from '../../../core/models/orcamento.model';
+import { FormaPagamento, PagamentoResponse, PagamentoResumo } from '../../../core/models/pagamento.model';
 import { ProdutoResponse } from '../../../core/models/produto.model';
 import { ServicoResponse } from '../../../core/models/servico.model';
 import { extractErrorMessage } from '../../../core/utils/api-error.util';
@@ -36,6 +38,30 @@ const STATUS_LABEL: Record<StatusOrcamento, string> = {
   REJEITADO: 'Rejeitado',
   CANCELADO: 'Cancelado'
 };
+
+const STATUS_PAGAMENTO_LABEL: Record<string, string> = {
+  PENDENTE: 'Pendente',
+  CONFIRMADO: 'Confirmado',
+  CANCELADO: 'Cancelado'
+};
+
+const FORMA_PAGAMENTO_LABEL: Record<FormaPagamento, string> = {
+  DINHEIRO: 'Dinheiro',
+  PIX: 'Pix',
+  CARTAO_CREDITO: 'Cartão de crédito',
+  CARTAO_DEBITO: 'Cartão de débito',
+  BOLETO: 'Boleto',
+  TRANSFERENCIA: 'Transferência'
+};
+
+const FORMAS_PAGAMENTO: FormaPagamento[] = [
+  'DINHEIRO',
+  'PIX',
+  'CARTAO_CREDITO',
+  'CARTAO_DEBITO',
+  'BOLETO',
+  'TRANSFERENCIA'
+];
 
 @Component({
   selector: 'app-orcamento-detail',
@@ -66,9 +92,13 @@ export class OrcamentoDetail implements OnInit {
   private readonly produtoService = inject(ProdutoService);
   private readonly authService = inject(AuthService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly pagamentoService = inject(PagamentoService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly statusLabel = STATUS_LABEL;
+  readonly statusPagamentoLabel = STATUS_PAGAMENTO_LABEL;
+  readonly formaPagamentoLabel = FORMA_PAGAMENTO_LABEL;
+  readonly formasPagamento = FORMAS_PAGAMENTO;
 
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
@@ -77,15 +107,23 @@ export class OrcamentoDetail implements OnInit {
   readonly historico = signal<OrcamentoHistorico[]>([]);
   readonly servicos = signal<ServicoResponse[]>([]);
   readonly produtos = signal<ProdutoResponse[]>([]);
+  readonly pagamentos = signal<PagamentoResponse[]>([]);
+  readonly resumoPagamentos = signal<PagamentoResumo | null>(null);
 
   readonly alterandoStatus = signal(false);
   readonly adicionandoServico = signal(false);
   readonly adicionandoProduto = signal(false);
   readonly editandoItemId = signal<number | null>(null);
   readonly salvandoItem = signal(false);
+  readonly registrandoPagamento = signal(false);
 
   readonly podeGerenciar = computed(() => this.authService.hasRole('ADMIN', 'ATENDENTE'));
   readonly emRascunho = computed(() => this.orcamento()?.status === 'RASCUNHO');
+  readonly aprovado = computed(() => this.orcamento()?.status === 'APROVADO');
+  readonly podeRegistrarPagamento = computed(() => {
+    const resumo = this.resumoPagamentos();
+    return this.podeGerenciar() && this.aprovado() && !!resumo && resumo.valorDisponivelParaNovoPagamento > 0;
+  });
   readonly podeEditarItens = computed(() => this.podeGerenciar() && this.emRascunho());
   readonly proximosStatus = computed(() => {
     const orcamento = this.orcamento();
@@ -115,6 +153,12 @@ export class OrcamentoDetail implements OnInit {
     valorUnitario: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)])
   });
 
+  readonly pagamentoForm = this.fb.group({
+    valor: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
+    formaPagamento: this.fb.control<FormaPagamento | null>(null, [Validators.required]),
+    observacao: this.fb.control('', [Validators.maxLength(500)])
+  });
+
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -122,6 +166,65 @@ export class OrcamentoDetail implements OnInit {
     this.produtoService.listarAtivos().subscribe((produtos) => this.produtos.set(produtos));
 
     this.carregar(id);
+  }
+
+  registrarPagamento(): void {
+    const orcamento = this.orcamento();
+    if (!orcamento || this.pagamentoForm.invalid) {
+      this.pagamentoForm.markAllAsTouched();
+      return;
+    }
+
+    this.registrandoPagamento.set(true);
+    const { valor, formaPagamento, observacao } = this.pagamentoForm.getRawValue();
+
+    this.pagamentoService
+      .criarParaOrcamento(orcamento.id, { valor: valor!, formaPagamento: formaPagamento!, observacao })
+      .subscribe({
+        next: () => {
+          this.registrandoPagamento.set(false);
+          this.pagamentoForm.reset({ valor: null, formaPagamento: null, observacao: '' });
+          this.carregarPagamentos(orcamento.id);
+        },
+        error: (error: unknown) => {
+          this.registrandoPagamento.set(false);
+          this.snackBar.open(extractErrorMessage(error, 'Não foi possível registrar o pagamento.'), 'Ok', {
+            duration: 4000
+          });
+        }
+      });
+  }
+
+  confirmarPagamento(pagamento: PagamentoResponse): void {
+    this.pagamentoService.confirmar(pagamento.id).subscribe({
+      next: () => this.carregarPagamentos(pagamento.orcamentoId),
+      error: (error: unknown) => {
+        this.snackBar.open(extractErrorMessage(error, 'Não foi possível confirmar o pagamento.'), 'Ok', {
+          duration: 4000
+        });
+      }
+    });
+  }
+
+  cancelarPagamento(pagamento: PagamentoResponse): void {
+    this.pagamentoService.cancelar(pagamento.id).subscribe({
+      next: () => this.carregarPagamentos(pagamento.orcamentoId),
+      error: (error: unknown) => {
+        this.snackBar.open(extractErrorMessage(error, 'Não foi possível cancelar o pagamento.'), 'Ok', {
+          duration: 4000
+        });
+      }
+    });
+  }
+
+  private carregarPagamentos(orcamentoId: number): void {
+    forkJoin({
+      pagamentos: this.pagamentoService.listarPorOrcamento(orcamentoId),
+      resumo: this.pagamentoService.obterResumo(orcamentoId)
+    }).subscribe(({ pagamentos, resumo }) => {
+      this.pagamentos.set(pagamentos);
+      this.resumoPagamentos.set(resumo);
+    });
   }
 
   alterarStatus(novoStatus: StatusOrcamento): void {
@@ -137,6 +240,10 @@ export class OrcamentoDetail implements OnInit {
         this.orcamento.set(atualizado);
         this.alterandoStatus.set(false);
         this.carregarHistorico(orcamento.id);
+
+        if (atualizado.status === 'APROVADO') {
+          this.carregarPagamentos(atualizado.id);
+        }
       },
       error: (error: unknown) => {
         this.alterandoStatus.set(false);
@@ -284,6 +391,10 @@ export class OrcamentoDetail implements OnInit {
         this.itens.set(itens);
         this.historico.set(historico);
         this.loading.set(false);
+
+        if (orcamento.status === 'APROVADO') {
+          this.carregarPagamentos(orcamento.id);
+        }
       },
       error: (error: unknown) => {
         this.errorMessage.set(extractErrorMessage(error, 'Não foi possível carregar o orçamento.'));
