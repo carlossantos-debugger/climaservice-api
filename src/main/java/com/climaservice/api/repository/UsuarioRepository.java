@@ -48,4 +48,9 @@ public interface UsuarioRepository
             Long empresaId,
             RoleUsuario role
     );
+
+    List<Usuario> findByEmpresa_IdAndRoleAndAtivoTrueOrderByNomeAsc(
+            Long empresaId,
+            RoleUsuario role
+    );
 }

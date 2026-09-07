@@ -1013,8 +1013,11 @@ Usuários podem ser inativados sem exclusão física. Usuários inativos não po
 | GET | `/usuarios/{id}` | Buscar usuário |
 | PATCH | `/usuarios/{id}/ativar` | Ativar usuário |
 | PATCH | `/usuarios/{id}/inativar` | Inativar usuário |
+| GET | `/tecnicos` | Listar técnicos ativos da empresa (só `id`/`nome`) — `ADMIN`, `ATENDENTE`, `TECNICO` |
 
-O gerenciamento de usuários é restrito ao perfil `ADMIN`.
+O gerenciamento de usuários é restrito ao perfil `ADMIN`. `/tecnicos` é um endpoint separado e
+propositalmente mais aberto: um `ATENDENTE` precisa escolher um técnico ao criar um agendamento,
+mas não deve ter acesso à lista completa de usuários (e-mail, status, outras roles).
 
 ### Matriz de permissões
 
