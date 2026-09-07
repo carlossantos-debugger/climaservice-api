@@ -1,0 +1,195 @@
+@if (loading()) {
+  <app-loading message="Carregando orçamento..." />
+} @else if (errorMessage(); as message) {
+  <app-error-message [message]="message" />
+} @else if (orcamento(); as orcamento) {
+  <div class="orcamento-detail">
+    <div class="orcamento-detail__header">
+      <h1>Orçamento #{{ orcamento.id }}</h1>
+      <mat-chip>{{ statusLabel[orcamento.status] }}</mat-chip>
+      <a [routerLink]="['/ordens-servico', orcamento.ordemServicoId]">OS #{{ orcamento.ordemServicoId }}</a>
+    </div>
+
+    <section class="orcamento-detail__info">
+      <div>
+        <span class="orcamento-detail__label">Valor total</span>
+        <span class="orcamento-detail__total">{{ orcamento.valorTotal | currency: 'BRL' }}</span>
+      </div>
+      <div>
+        <span class="orcamento-detail__label">Criado em</span>
+        <span>{{ orcamento.dataCriacao | date: 'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      @if (orcamento.dataEnvio) {
+        <div>
+          <span class="orcamento-detail__label">Enviado em</span>
+          <span>{{ orcamento.dataEnvio | date: 'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+      }
+      @if (orcamento.dataResposta) {
+        <div>
+          <span class="orcamento-detail__label">Respondido em</span>
+          <span>{{ orcamento.dataResposta | date: 'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+      }
+      @if (orcamento.observacao) {
+        <div>
+          <span class="orcamento-detail__label">Observação</span>
+          <span>{{ orcamento.observacao }}</span>
+        </div>
+      }
+    </section>
+
+    @if (podeGerenciar() && proximosStatus().length > 0) {
+      <section class="orcamento-detail__transicoes">
+        <h2>Alterar status</h2>
+        <div class="orcamento-detail__botoes-status">
+          @for (status of proximosStatus(); track status) {
+            <button mat-stroked-button [disabled]="alterandoStatus()" (click)="alterarStatus(status)">
+              {{ statusLabel[status] }}
+            </button>
+          }
+        </div>
+        @if (orcamento.status === 'RASCUNHO' && itens().length === 0) {
+          <p class="orcamento-detail__aviso">Adicione ao menos um item antes de enviar o orçamento.</p>
+        }
+      </section>
+    }
+
+    <section>
+      <h2>Itens</h2>
+      @if (itens().length === 0) {
+        <p class="orcamento-detail__vazio">Nenhum item adicionado.</p>
+      } @else {
+        <table class="orcamento-detail__tabela">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Descrição</th>
+              <th>Quantidade</th>
+              <th>Valor unitário</th>
+              <th>Subtotal</th>
+              @if (podeEditarItens()) {
+                <th></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of itens(); track item.id) {
+              @if (editandoItemId() === item.id) {
+                <tr [formGroup]="itemEditForm">
+                  <td>{{ item.tipo === 'SERVICO' ? 'Serviço' : 'Peça' }}</td>
+                  <td>{{ item.descricao }}</td>
+                  <td>
+                    <input matInput type="number" formControlName="quantidade" class="orcamento-detail__input-inline" />
+                  </td>
+                  <td>
+                    <input
+                      matInput
+                      type="number"
+                      step="0.01"
+                      formControlName="valorUnitario"
+                      class="orcamento-detail__input-inline"
+                    />
+                  </td>
+                  <td>{{ item.subtotal | currency: 'BRL' }}</td>
+                  <td class="orcamento-detail__acoes-item">
+                    <button mat-icon-button (click)="salvarEdicaoItem(item)" [disabled]="salvandoItem()" aria-label="Salvar">
+                      <mat-icon>check</mat-icon>
+                    </button>
+                    <button mat-icon-button (click)="cancelarEdicaoItem()" aria-label="Cancelar">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+              } @else {
+                <tr>
+                  <td>{{ item.tipo === 'SERVICO' ? 'Serviço' : 'Peça' }}</td>
+                  <td>{{ item.descricao }}</td>
+                  <td>{{ item.quantidade }}</td>
+                  <td>{{ item.valorUnitario | currency: 'BRL' }}</td>
+                  <td>{{ item.subtotal | currency: 'BRL' }}</td>
+                  @if (podeEditarItens()) {
+                    <td class="orcamento-detail__acoes-item">
+                      <button mat-icon-button (click)="iniciarEdicaoItem(item)" aria-label="Editar">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button (click)="removerItem(item)" aria-label="Remover">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+    @if (podeEditarItens()) {
+      <section class="orcamento-detail__adicionar">
+        <div class="orcamento-detail__adicionar-form">
+          <h3>Adicionar serviço</h3>
+          <form [formGroup]="itemServicoForm" (ngSubmit)="adicionarServico()">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Serviço</mat-label>
+              <mat-select formControlName="servicoId">
+                @for (servico of servicos(); track servico.id) {
+                  <mat-option [value]="servico.id">{{ servico.nome }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Qtd.</mat-label>
+              <input matInput type="number" formControlName="quantidade" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Valor (opcional)</mat-label>
+              <input matInput type="number" step="0.01" formControlName="valorUnitario" />
+            </mat-form-field>
+            <button mat-stroked-button type="submit" [disabled]="adicionandoServico()">Adicionar</button>
+          </form>
+        </div>
+
+        <div class="orcamento-detail__adicionar-form">
+          <h3>Adicionar peça</h3>
+          <form [formGroup]="itemProdutoForm" (ngSubmit)="adicionarProduto()">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Produto</mat-label>
+              <mat-select formControlName="produtoId">
+                @for (produto of produtos(); track produto.id) {
+                  <mat-option [value]="produto.id">{{ produto.nome }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Qtd.</mat-label>
+              <input matInput type="number" formControlName="quantidade" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Valor (opcional)</mat-label>
+              <input matInput type="number" step="0.01" formControlName="valorUnitario" />
+            </mat-form-field>
+            <button mat-stroked-button type="submit" [disabled]="adicionandoProduto()">Adicionar</button>
+          </form>
+        </div>
+      </section>
+    }
+
+    <section>
+      <h2>Histórico de status</h2>
+      @if (historico().length === 0) {
+        <p class="orcamento-detail__vazio">Nenhuma alteração de status registrada.</p>
+      } @else {
+        <mat-list>
+          @for (item of historico(); track item.id) {
+            <mat-list-item>
+              <span matListItemTitle>{{ statusLabel[item.statusAnterior] }} → {{ statusLabel[item.statusNovo] }}</span>
+              <span matListItemLine>{{ item.usuarioNome }} — {{ item.dataAlteracao | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </mat-list-item>
+          }
+        </mat-list>
+      }
+    </section>
+  </div>
+}

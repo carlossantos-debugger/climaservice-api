@@ -133,9 +133,18 @@ export const routes: Routes = [
       },
       {
         path: 'orcamentos',
+        loadComponent: () => import('./features/orcamentos/orcamento-list/orcamento-list').then((m) => m.OrcamentoList)
+      },
+      {
+        path: 'orcamentos/novo',
         loadComponent: () =>
-          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
-        data: { title: 'Orçamentos', icon: 'request_quote' }
+          import('./features/orcamentos/orcamento-form/orcamento-form').then((m) => m.OrcamentoForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
+      },
+      {
+        path: 'orcamentos/:id',
+        loadComponent: () =>
+          import('./features/orcamentos/orcamento-detail/orcamento-detail').then((m) => m.OrcamentoDetail)
       },
       {
         path: 'pagamentos',
