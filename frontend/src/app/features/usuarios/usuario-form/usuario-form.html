@@ -1,0 +1,52 @@
+<div class="usuario-form">
+  <h1>Novo usuário</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <mat-form-field appearance="outline">
+      <mat-label>Nome</mat-label>
+      <input matInput formControlName="nome" />
+      @if (form.controls.nome.invalid && form.controls.nome.touched) {
+        <mat-error>O nome é obrigatório.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>E-mail</mat-label>
+      <input matInput type="email" formControlName="email" />
+      @if (form.controls.email.invalid && form.controls.email.touched) {
+        <mat-error>Informe um e-mail válido.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Senha</mat-label>
+      <input matInput type="password" formControlName="senha" autocomplete="new-password" />
+      @if (form.controls.senha.invalid && form.controls.senha.touched) {
+        <mat-error>A senha deve ter entre 8 e 72 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Perfil</mat-label>
+      <mat-select formControlName="role">
+        @for (role of roles; track role) {
+          <mat-option [value]="role">{{ role }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls.role.invalid && form.controls.role.touched) {
+        <mat-error>O perfil é obrigatório.</mat-error>
+      }
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <app-error-message [message]="message" />
+    }
+
+    <div class="usuario-form__acoes">
+      <button mat-stroked-button type="button" (click)="cancelar()">Cancelar</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Salvando...' : 'Cadastrar' }}
+      </button>
+    </div>
+  </form>
+</div>
