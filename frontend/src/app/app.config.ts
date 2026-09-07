@@ -16,8 +16,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideAnimationsAsync(),
     { provide: LOCALE_ID, useValue: 'pt-BR' },
-    // Tratamento global de erros HTTP (toasts, etc. além do 401/403 do jwtInterceptor)
-    // chega na feature/ux-hardening.
     provideHttpClient(withInterceptors([jwtInterceptor]))
   ]
 };

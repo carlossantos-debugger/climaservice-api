@@ -163,9 +163,16 @@ export const routes: Routes = [
       {
         path: 'empresa',
         loadComponent: () => import('./features/empresa/empresa-page/empresa-page').then((m) => m.EmpresaPage)
+      },
+      {
+        path: 'acesso-negado',
+        loadComponent: () =>
+          import('./shared/components/acesso-negado/acesso-negado').then((m) => m.AcessoNegado)
       }
     ]
   },
-  // TODO(feature/ux-hardening): página 404 dedicada em vez deste redirect.
-  { path: '**', redirectTo: '' }
+  {
+    path: '**',
+    loadComponent: () => import('./shared/components/not-found/not-found').then((m) => m.NotFound)
+  }
 ];
