@@ -1853,4 +1853,4 @@ Isolamento multi-tenant
 
 O backend também utiliza **Flyway** para versionamento do banco e uma suíte de testes com **JUnit 5, Mockito e Testcontainers**, executando cenários de integração contra PostgreSQL real em container.
 
-Agenda de atendimentos, manutenção preventiva, paginação/filtros nos endpoints principais, dashboard, documentação OpenAPI/Swagger, containerização com Docker, CI com GitHub Actions e uma auditoria completa de segurança e isolamento multi-tenant (incluindo bloqueio de empresa inativa, proteção contra ficar sem `ADMIN` ativo e CORS configurável) já estão implementados. A próxima etapa é o frontend com Angular.
+Agenda de atendimentos, manutenção preventiva, paginação/filtros nos endpoints principais, dashboard, documentação OpenAPI/Swagger, containerização com Docker, CI com GitHub Actions, integração com o Sistema Nacional de NFS-e e uma auditoria completa de segurança e isolamento multi-tenant (incluindo bloqueio de empresa inativa, proteção contra ficar sem `ADMIN` ativo e CORS configurável) já estão implementados. O frontend em Angular também está completo — ver [`frontend/README.md`](frontend/README.md).
