@@ -1,0 +1,49 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # `npm ci` falha aqui (e no build da imagem Docker, ver frontend/Dockerfile): o
+      # lockfile foi gerado no Windows e nunca resolveu o fallback WASM do lightningcss
+      # pra Linux (pacotes @emnapi/*, peer dependency de @napi-rs/wasm-runtime) —
+      # confirmado rodando `npm ci` num container node:24 (glibc, o mesmo runtime do
+      # ubuntu-latest do Actions), não é só uma particularidade do Alpine/musl da imagem.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test -- --watch=false
+
+      - name: Build
+        run: npm run build
