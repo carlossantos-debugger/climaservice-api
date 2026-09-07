@@ -25,22 +25,14 @@
       }
     }
 
-    @if (semPermissaoParaListarTecnicos()) {
-      <mat-form-field appearance="outline">
-        <mat-label>ID do técnico</mat-label>
-        <input matInput type="number" formControlName="tecnicoId" />
-        <mat-hint>Seu perfil não pode listar os técnicos da empresa — peça o ID a um administrador.</mat-hint>
-      </mat-form-field>
-    } @else {
-      <mat-form-field appearance="outline">
-        <mat-label>Técnico</mat-label>
-        <mat-select formControlName="tecnicoId">
-          @for (tecnico of tecnicos(); track tecnico.id) {
-            <mat-option [value]="tecnico.id">{{ tecnico.nome }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-    }
+    <mat-form-field appearance="outline">
+      <mat-label>Técnico</mat-label>
+      <mat-select formControlName="tecnicoId">
+        @for (tecnico of tecnicos(); track tecnico.id) {
+          <mat-option [value]="tecnico.id">{{ tecnico.nome }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
 
     <div class="agendamento-form__row">
       <mat-form-field appearance="outline">

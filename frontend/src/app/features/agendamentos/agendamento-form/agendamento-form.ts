@@ -11,7 +11,7 @@ import { AgendamentoService } from '../../../core/services/agendamento.service';
 import { OrdemServicoService } from '../../../core/services/ordem-servico.service';
 import { UsuarioService } from '../../../core/services/usuario.service';
 import { OrdemServicoResponse } from '../../../core/models/ordem-servico.model';
-import { Usuario } from '../../../core/models/usuario.model';
+import { TecnicoResumo } from '../../../core/models/usuario.model';
 import { extractErrorMessage } from '../../../core/utils/api-error.util';
 import { ErrorMessage } from '../../../shared/components/error-message/error-message';
 
@@ -46,9 +46,7 @@ export class AgendamentoForm implements OnInit {
   readonly ordemServico = signal<OrdemServicoResponse | null>(null);
   readonly osNaoEncontrada = signal(false);
 
-  readonly tecnicos = signal<Usuario[]>([]);
-  /** true quando GET /usuarios deu 403 (usuário ATENDENTE) — ver UsuarioService. */
-  readonly semPermissaoParaListarTecnicos = signal(false);
+  readonly tecnicos = signal<TecnicoResumo[]>([]);
 
   readonly form = this.fb.group({
     ordemServicoId: this.fb.control<number | null>(null, [Validators.required]),
@@ -59,10 +57,7 @@ export class AgendamentoForm implements OnInit {
   });
 
   ngOnInit(): void {
-    this.usuarioService.listarTodos().subscribe({
-      next: (usuarios) => this.tecnicos.set(usuarios.filter((u) => u.role === 'TECNICO' && u.ativo)),
-      error: () => this.semPermissaoParaListarTecnicos.set(true)
-    });
+    this.usuarioService.listarTecnicos().subscribe((tecnicos) => this.tecnicos.set(tecnicos));
 
     const ordemServicoIdParam = this.route.snapshot.queryParamMap.get('ordemServicoId');
     if (ordemServicoIdParam) {

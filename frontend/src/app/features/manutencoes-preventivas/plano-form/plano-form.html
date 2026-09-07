@@ -28,23 +28,15 @@
         </mat-form-field>
       }
 
-      @if (semPermissaoParaListarTecnicos()) {
-        <mat-form-field appearance="outline">
-          <mat-label>ID do técnico padrão (opcional)</mat-label>
-          <input matInput type="number" formControlName="tecnicoPadraoId" />
-          <mat-hint>Seu perfil não pode listar os técnicos da empresa — peça o ID a um administrador.</mat-hint>
-        </mat-form-field>
-      } @else {
-        <mat-form-field appearance="outline">
-          <mat-label>Técnico padrão (opcional)</mat-label>
-          <mat-select formControlName="tecnicoPadraoId">
-            <mat-option [value]="null">Nenhum</mat-option>
-            @for (tecnico of tecnicos(); track tecnico.id) {
-              <mat-option [value]="tecnico.id">{{ tecnico.nome }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-      }
+      <mat-form-field appearance="outline">
+        <mat-label>Técnico padrão (opcional)</mat-label>
+        <mat-select formControlName="tecnicoPadraoId">
+          <mat-option [value]="null">Nenhum</mat-option>
+          @for (tecnico of tecnicos(); track tecnico.id) {
+            <mat-option [value]="tecnico.id">{{ tecnico.nome }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
 
       <div class="plano-form__row">
         <mat-form-field appearance="outline">

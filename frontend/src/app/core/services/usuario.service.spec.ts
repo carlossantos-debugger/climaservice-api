@@ -45,6 +45,13 @@ describe('UsuarioService', () => {
     req.flush({});
   });
 
+  it('listarTecnicos() faz GET /tecnicos', () => {
+    service.listarTecnicos().subscribe();
+    const req = httpMock.expectOne(`${environment.apiUrl}/tecnicos`);
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
+
   it('ativar()/inativar() fazem PATCH', () => {
     service.ativar(1).subscribe();
     httpMock.expectOne(`${BASE_URL}/1/ativar`).flush({});

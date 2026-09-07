@@ -12,7 +12,7 @@ import { EquipamentoService } from '../../../core/services/equipamento.service';
 import { PlanoManutencaoService } from '../../../core/services/plano-manutencao.service';
 import { UsuarioService } from '../../../core/services/usuario.service';
 import { EquipamentoResponse } from '../../../core/models/equipamento.model';
-import { Usuario } from '../../../core/models/usuario.model';
+import { TecnicoResumo } from '../../../core/models/usuario.model';
 import { extractErrorMessage } from '../../../core/utils/api-error.util';
 import { ErrorMessage } from '../../../shared/components/error-message/error-message';
 import { Loading } from '../../../shared/components/loading/loading';
@@ -50,8 +50,7 @@ export class PlanoForm implements OnInit {
   readonly errorMessage = signal<string | null>(null);
 
   readonly equipamentosEncontrados = signal<EquipamentoResponse[]>([]);
-  readonly tecnicos = signal<Usuario[]>([]);
-  readonly semPermissaoParaListarTecnicos = signal(false);
+  readonly tecnicos = signal<TecnicoResumo[]>([]);
 
   private equipamentoSelecionadoId: number | null = null;
   private equipamentoSelecionadoLabel: string | null = null;
@@ -67,10 +66,7 @@ export class PlanoForm implements OnInit {
   });
 
   ngOnInit(): void {
-    this.usuarioService.listarTodos().subscribe({
-      next: (usuarios) => this.tecnicos.set(usuarios.filter((u) => u.role === 'TECNICO' && u.ativo)),
-      error: () => this.semPermissaoParaListarTecnicos.set(true)
-    });
+    this.usuarioService.listarTecnicos().subscribe((tecnicos) => this.tecnicos.set(tecnicos));
 
     this.form.controls.equipamentoBusca.valueChanges
       .pipe(
