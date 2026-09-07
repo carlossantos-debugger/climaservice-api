@@ -1,0 +1,21 @@
+<div class="orcamento-form">
+  <h1>Novo orçamento</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <mat-form-field appearance="outline">
+      <mat-label>Observação</mat-label>
+      <textarea matInput formControlName="observacao" rows="4"></textarea>
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <app-error-message [message]="message" />
+    }
+
+    <div class="orcamento-form__acoes">
+      <button mat-stroked-button type="button" (click)="cancelar()">Cancelar</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Salvando...' : 'Criar orçamento' }}
+      </button>
+    </div>
+  </form>
+</div>

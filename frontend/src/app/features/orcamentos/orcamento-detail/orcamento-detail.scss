@@ -1,0 +1,120 @@
+.orcamento-detail {
+  max-width: 840px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    h1 {
+      margin: 0;
+    }
+  }
+
+  &__info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  &__label {
+    font-size: 0.75rem;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  &__total {
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+
+  section {
+    margin-bottom: 24px;
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+  }
+
+  &__botoes-status {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__aviso {
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 0.8125rem;
+    margin-top: 8px;
+  }
+
+  &__tabela {
+    width: 100%;
+    border-collapse: collapse;
+
+    th {
+      text-align: left;
+      font-weight: 500;
+      font-size: 0.8125rem;
+      color: rgba(0, 0, 0, 0.6);
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  &__input-inline {
+    width: 80px;
+  }
+
+  &__acoes-item {
+    white-space: nowrap;
+  }
+
+  &__adicionar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+  }
+
+  &__adicionar-form {
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 4px;
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    form {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    mat-form-field {
+      flex: 1;
+      min-width: 100px;
+    }
+  }
+
+  &__vazio {
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 0.875rem;
+  }
+}

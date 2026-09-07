@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
@@ -11,6 +11,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { OrcamentoService } from '../../../core/services/orcamento.service';
 import { OrdemServicoService } from '../../../core/services/ordem-servico.service';
 import {
   OrdemServicoDiagnosticoHistorico,
@@ -19,6 +20,7 @@ import {
   StatusOrdemServico,
   TRANSICOES_STATUS_OS
 } from '../../../core/models/ordem-servico.model';
+import { OrcamentoResponse } from '../../../core/models/orcamento.model';
 import { extractErrorMessage } from '../../../core/utils/api-error.util';
 import { ErrorMessage } from '../../../shared/components/error-message/error-message';
 import { Loading } from '../../../shared/components/loading/loading';
@@ -36,6 +38,7 @@ const STATUS_LABEL: Record<StatusOrdemServico, string> = {
   imports: [
     ReactiveFormsModule,
     RouterLink,
+    CurrencyPipe,
     DatePipe,
     MatButtonModule,
     MatChipsModule,
@@ -54,6 +57,7 @@ export class OrdemServicoDetail implements OnInit {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly ordemServicoService = inject(OrdemServicoService);
+  private readonly orcamentoService = inject(OrcamentoService);
   private readonly authService = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -64,6 +68,7 @@ export class OrdemServicoDetail implements OnInit {
   readonly os = signal<OrdemServicoResponse | null>(null);
   readonly historicoStatus = signal<OrdemServicoHistorico[]>([]);
   readonly historicoDiagnostico = signal<OrdemServicoDiagnosticoHistorico[]>([]);
+  readonly orcamentos = signal<OrcamentoResponse[]>([]);
 
   readonly salvandoDiagnostico = signal(false);
   readonly alterandoStatus = signal(false);
@@ -147,13 +152,15 @@ export class OrdemServicoDetail implements OnInit {
     forkJoin({
       os: this.ordemServicoService.buscarPorId(id),
       historicoStatus: this.ordemServicoService.listarHistorico(id),
-      historicoDiagnostico: this.ordemServicoService.listarHistoricoDiagnostico(id)
+      historicoDiagnostico: this.ordemServicoService.listarHistoricoDiagnostico(id),
+      orcamentos: this.orcamentoService.listarPorOrdemServico(id)
     }).subscribe({
-      next: ({ os, historicoStatus, historicoDiagnostico }) => {
+      next: ({ os, historicoStatus, historicoDiagnostico, orcamentos }) => {
         this.os.set(os);
         this.diagnosticoForm.controls.diagnostico.setValue(os.diagnostico ?? '');
         this.historicoStatus.set(historicoStatus);
         this.historicoDiagnostico.set(historicoDiagnostico);
+        this.orcamentos.set(orcamentos);
         this.loading.set(false);
       },
       error: (error: unknown) => {

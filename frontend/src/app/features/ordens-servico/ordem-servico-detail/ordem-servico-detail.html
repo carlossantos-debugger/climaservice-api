@@ -11,6 +11,9 @@
         <a mat-stroked-button [routerLink]="['/agendamentos/novo']" [queryParams]="{ ordemServicoId: os.id }">
           Agendar
         </a>
+        <a mat-stroked-button [routerLink]="['/orcamentos/novo']" [queryParams]="{ ordemServicoId: os.id }">
+          Novo orçamento
+        </a>
       }
     </div>
 
@@ -38,6 +41,23 @@
     <section class="os-detail__descricao">
       <h2>Descrição do problema</h2>
       <p>{{ os.descricaoProblema }}</p>
+    </section>
+
+    <section>
+      <h2>Orçamentos</h2>
+      @if (orcamentos().length === 0) {
+        <p class="os-detail__vazio">Nenhum orçamento criado para esta OS.</p>
+      } @else {
+        <ul class="os-detail__orcamentos">
+          @for (orcamento of orcamentos(); track orcamento.id) {
+            <li>
+              <a [routerLink]="['/orcamentos', orcamento.id]">
+                Orçamento #{{ orcamento.id }} — {{ orcamento.status }} — {{ orcamento.valorTotal | currency: 'BRL' }}
+              </a>
+            </li>
+          }
+        </ul>
+      }
     </section>
 
     @if (podeGerenciar() && proximosStatus().length > 0) {

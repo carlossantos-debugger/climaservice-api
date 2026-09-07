@@ -1,0 +1,79 @@
+<div class="orcamento-list">
+  <h1>Orçamentos</h1>
+
+  <form class="orcamento-list__filtros" [formGroup]="filtroForm" (ngSubmit)="buscar()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Status</mat-label>
+      <mat-select formControlName="status">
+        <mat-option value="">Todos</mat-option>
+        @for (status of statusOptions; track status) {
+          <mat-option [value]="status">{{ statusLabel[status] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Criado a partir de</mat-label>
+      <input matInput [matDatepicker]="pickerInicial" formControlName="dataInicial" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerInicial"></mat-datepicker-toggle>
+      <mat-datepicker #pickerInicial></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Criado até</mat-label>
+      <input matInput [matDatepicker]="pickerFinal" formControlName="dataFinal" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerFinal"></mat-datepicker-toggle>
+      <mat-datepicker #pickerFinal></mat-datepicker>
+    </mat-form-field>
+
+    <button mat-stroked-button type="submit">
+      <mat-icon>search</mat-icon>
+      Buscar
+    </button>
+  </form>
+
+  @if (loading()) {
+    <app-loading message="Carregando orçamentos..." />
+  } @else if (errorMessage(); as message) {
+    <app-error-message [message]="message" />
+  } @else if (orcamentos().length === 0) {
+    <app-empty-state icon="request_quote" title="Nenhum orçamento encontrado" />
+  } @else {
+    <table class="orcamento-list__table">
+      <thead>
+        <tr>
+          <th>OS</th>
+          <th>Status</th>
+          <th>Valor total</th>
+          <th>Criado em</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (orcamento of orcamentos(); track orcamento.id) {
+          <tr [routerLink]="['/orcamentos', orcamento.id]" class="orcamento-list__row">
+            <td>OS #{{ orcamento.ordemServicoId }}</td>
+            <td>
+              <mat-chip>{{ statusLabel[orcamento.status] }}</mat-chip>
+            </td>
+            <td>{{ orcamento.valorTotal | currency: 'BRL' }}</td>
+            <td>{{ orcamento.dataCriacao | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>
+              <a mat-icon-button [routerLink]="['/orcamentos', orcamento.id]" aria-label="Ver detalhes">
+                <mat-icon>chevron_right</mat-icon>
+              </a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <mat-paginator
+      [length]="totalElements()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPage($event)"
+    />
+  }
+</div>
