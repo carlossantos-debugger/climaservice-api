@@ -148,9 +148,7 @@ export const routes: Routes = [
       },
       {
         path: 'pagamentos',
-        loadComponent: () =>
-          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
-        data: { title: 'Pagamentos', icon: 'payments' }
+        loadComponent: () => import('./features/pagamentos/pagamento-list/pagamento-list').then((m) => m.PagamentoList)
       },
       {
         path: 'usuarios',

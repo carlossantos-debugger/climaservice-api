@@ -117,4 +117,29 @@
     color: rgba(0, 0, 0, 0.6);
     font-size: 0.875rem;
   }
+
+  &__resumo-pagamentos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  &__pagamento-form {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+
+    mat-form-field {
+      flex: 1;
+      min-width: 140px;
+    }
+  }
 }
