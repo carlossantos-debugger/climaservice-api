@@ -1,6 +1,7 @@
 # ClimaService API
 
 [![Backend CI](https://github.com/carlossantos-debugger/climaservice-api/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/carlossantos-debugger/climaservice-api/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/carlossantos-debugger/climaservice-api/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/carlossantos-debugger/climaservice-api/actions/workflows/frontend-ci.yml)
 
 API REST para gerenciamento de serviços de climatização e manutenção de ar-condicionado.
 
@@ -44,9 +45,18 @@ O objetivo é construir uma aplicação completa utilizando **Java, Spring Boot,
 - Docker Compose
 - GitHub Actions
 
-### Planejadas
+### Frontend
 
-- Angular
+- Angular 21 (standalone, zoneless — sem `zone.js`)
+- TypeScript
+- Angular Router (rotas lazy por feature, guards de autenticação/perfil)
+- Reactive Forms
+- RxJS
+- Angular Material (tema Material 3)
+- Vitest (builder oficial do Angular CLI para testes unitários)
+- Nginx (serve os artefatos estáticos em produção/Docker)
+
+Ver [`frontend/README.md`](frontend/README.md) para detalhes de instalação, execução e estrutura.
 
 ---
 
@@ -1756,12 +1766,15 @@ Até o momento, o projeto utiliza conceitos como:
 - [x] Nota Fiscal de Serviço Eletrônica — Fase 2 (cliente mTLS, assinatura XML-DSig da DPS, chamada ao
   Sefin Nacional; mecanismo completo, mas nunca validado contra o serviço real por falta de
   certificado digital ICP-Brasil — ver seção NFS-e acima)
+- [x] Frontend com Angular — SPA completa cobrindo as 12 áreas de negócio (dashboard, clientes,
+  equipamentos, ordens de serviço, agendamentos, manutenção preventiva, serviços, produtos,
+  orçamentos, pagamentos, usuários, empresa), autenticação, controle de acesso por perfil, testes
+  unitários, containerização com Docker/nginx e CI dedicado — ver [`frontend/README.md`](frontend/README.md)
 
 ## Próximas etapas
 
 - [ ] Validar a integração NFS-e Fase 2 contra o ambiente de homologação real assim que houver
   certificado digital A1/A3 (confirmar contrato exato do Swagger/XSD oficial)
-- [ ] Frontend com Angular
 
 ---
 
@@ -1792,7 +1805,11 @@ Além de desenvolver uma aplicação funcional para gestão de serviços de clim
 
 # Status
 
-✅ **Backend V1 concluído** — pronto para integração com o frontend Angular
+✅ **Backend V1 e Frontend V1 concluídos** — aplicação full-stack funcional de ponta a ponta
+
+O frontend (Angular 21) cobre as 12 áreas de negócio do backend numa SPA autenticada, com controle
+de acesso por perfil, tratamento global de erros HTTP, testes unitários e sua própria containerização
+e pipeline de CI — ver [`frontend/README.md`](frontend/README.md) para detalhes.
 
 Atualmente, o backend já cobre o fluxo principal de atendimento e financeiro:
 
