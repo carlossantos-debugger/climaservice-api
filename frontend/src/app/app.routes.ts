@@ -105,9 +105,17 @@ export const routes: Routes = [
       },
       {
         path: 'servicos',
-        loadComponent: () =>
-          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
-        data: { title: 'Serviços', icon: 'design_services' }
+        loadComponent: () => import('./features/servicos/servico-list/servico-list').then((m) => m.ServicoList)
+      },
+      {
+        path: 'servicos/novo',
+        loadComponent: () => import('./features/servicos/servico-form/servico-form').then((m) => m.ServicoForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
+      },
+      {
+        path: 'servicos/:id/editar',
+        loadComponent: () => import('./features/servicos/servico-form/servico-form').then((m) => m.ServicoForm),
+        canActivate: [roleGuard('ADMIN', 'ATENDENTE')]
       },
       {
         path: 'produtos',

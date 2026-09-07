@@ -1,0 +1,41 @@
+<div class="servico-form">
+  <h1>{{ modoEdicao() ? 'Editar serviço' : 'Novo serviço' }}</h1>
+
+  @if (loading()) {
+    <app-loading message="Carregando serviço..." />
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>Nome</mat-label>
+        <input matInput formControlName="nome" />
+        @if (form.controls.nome.invalid && form.controls.nome.touched) {
+          <mat-error>O nome é obrigatório.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Descrição</mat-label>
+        <textarea matInput formControlName="descricao" rows="3"></textarea>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Valor padrão</mat-label>
+        <input matInput type="number" step="0.01" formControlName="valorPadrao" />
+        @if (form.controls.valorPadrao.invalid && form.controls.valorPadrao.touched) {
+          <mat-error>Informe um valor maior que zero.</mat-error>
+        }
+      </mat-form-field>
+
+      @if (errorMessage(); as message) {
+        <app-error-message [message]="message" />
+      }
+
+      <div class="servico-form__acoes">
+        <button mat-stroked-button type="button" (click)="cancelar()">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Salvando...' : 'Salvar' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>
