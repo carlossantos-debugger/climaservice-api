@@ -1,0 +1,7 @@
+.git
+node_modules
+dist
+.angular
+.claude
+*.log
+README.md
