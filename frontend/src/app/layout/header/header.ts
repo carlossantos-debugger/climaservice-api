@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../core/services/auth.service';
+import { EmpresaService } from '../../core/services/empresa.service';
 
 @Component({
   selector: 'app-header',
@@ -12,16 +13,26 @@ import { AuthService } from '../../core/services/auth.service';
   styleUrl: './header.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class Header {
+export class Header implements OnInit {
   private readonly authService = inject(AuthService);
+  private readonly empresaService = inject(EmpresaService);
 
   /** Emitido ao clicar no botão de menu, visível apenas em telas menores (modo "over" do sidenav). */
   readonly menuToggle = output<void>();
 
   readonly currentUser = this.authService.currentUser;
 
-  // TODO(feature/empresa): nome real da empresa via GET /empresa/me.
-  readonly empresaNome = 'ClimaService';
+  /** "ClimaService" até GET /empresa/me responder — nome genérico, não o de nenhuma empresa real. */
+  readonly empresaNome = signal('ClimaService');
+
+  ngOnInit(): void {
+    // Sem tratamento de erro específico aqui: em falha, só mantém o nome genérico —
+    // não vale a pena um snackbar só por isso no cabeçalho.
+    this.empresaService.obterAtual().subscribe({
+      next: (empresa) => this.empresaNome.set(empresa.nome),
+      error: () => undefined
+    });
+  }
 
   logout(): void {
     this.authService.logout();
