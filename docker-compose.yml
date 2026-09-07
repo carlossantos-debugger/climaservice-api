@@ -35,5 +35,15 @@ services:
       retries: 10
       start_period: 30s
 
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "4200:8080"
+
 volumes:
   climaservice-postgres-data:
