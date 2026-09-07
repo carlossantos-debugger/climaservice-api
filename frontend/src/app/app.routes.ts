@@ -152,10 +152,13 @@ export const routes: Routes = [
       },
       {
         path: 'usuarios',
-        loadComponent: () =>
-          import('./shared/components/placeholder-page/placeholder-page').then((m) => m.PlaceholderPage),
-        canActivate: [roleGuard('ADMIN')],
-        data: { title: 'Usuários', icon: 'manage_accounts' }
+        loadComponent: () => import('./features/usuarios/usuario-list/usuario-list').then((m) => m.UsuarioList),
+        canActivate: [roleGuard('ADMIN')]
+      },
+      {
+        path: 'usuarios/novo',
+        loadComponent: () => import('./features/usuarios/usuario-form/usuario-form').then((m) => m.UsuarioForm),
+        canActivate: [roleGuard('ADMIN')]
       },
       {
         path: 'empresa',

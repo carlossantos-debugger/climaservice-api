@@ -1,0 +1,57 @@
+<div class="usuario-list">
+  <div class="usuario-list__header">
+    <h1>Usuários</h1>
+    <a mat-flat-button color="primary" routerLink="/usuarios/novo">
+      <mat-icon>add</mat-icon>
+      Novo usuário
+    </a>
+  </div>
+
+  @if (loading()) {
+    <app-loading message="Carregando usuários..." />
+  } @else if (errorMessage(); as message) {
+    <app-error-message [message]="message" />
+  } @else if (usuarios().length === 0) {
+    <app-empty-state icon="manage_accounts" title="Nenhum usuário cadastrado" />
+  } @else {
+    <table class="usuario-list__table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>E-mail</th>
+          <th>Perfil</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (usuario of usuarios(); track usuario.id) {
+          <tr>
+            <td>{{ usuario.nome }}</td>
+            <td>{{ usuario.email }}</td>
+            <td>{{ usuario.role }}</td>
+            <td>
+              <mat-chip [color]="usuario.ativo ? 'primary' : undefined">{{ usuario.ativo ? 'Ativo' : 'Inativo' }}</mat-chip>
+            </td>
+            <td class="usuario-list__acoes">
+              <button
+                mat-icon-button
+                (click)="alternarAtivo(usuario)"
+                [disabled]="ehUnicoAdminAtivo(usuario)"
+                [matTooltip]="
+                  ehUnicoAdminAtivo(usuario)
+                    ? 'Não é possível inativar o único ADMIN ativo da empresa.'
+                    : usuario.ativo
+                      ? 'Inativar'
+                      : 'Ativar'
+                "
+              >
+                <mat-icon>{{ usuario.ativo ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
